@@ -6,7 +6,71 @@
         xmlns:local="clr-namespace:VESCO"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid>
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="3*"/>
+            <RowDefinition Height="2*"/>
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+
+
+        <!-- TOP-RIGHT LARGE PREVIEW (Ignore top-left per your request) -->
+        <Border Grid.Row="0" Grid.Column="1" Background="Black"
+                BorderBrush="Black" BorderThickness="2">
+            <Image Grid.Row="1" Grid.Column="1" x:Name="previewImage" ></Image>
+        </Border>
+
+
+        <!-- BOTTOM-LEFT MEDIA IMPORT AREA -->
+        <Grid Grid.Row="1" Grid.Column="0" Margin="0,10,10,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <!-- Import Button Bar -->
+            <Border Background="#666" Height="30" Padding="10"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top">
+                <DockPanel>
+                    <TextBlock Text="import media"
+                               VerticalAlignment="Center"
+                               Foreground="White"/>
+                    <Button Click="OpenVideo_Click" Content="+" Width="25" Height="25"
+                            DockPanel.Dock="Right" />
+                </DockPanel>
+            </Border>
+
+            <!-- Media Thumbnail Box -->
+            <Border Grid.Row="1" Background="Black" BorderBrush="Black"
+                    BorderThickness="2" Margin="0,5,0,0"/>
+        </Grid>
+
+        <!-- BOTTOM-RIGHT TIMELINE AREA -->
+        
+        <Grid Grid.Row="1" Grid.Column="1" Margin="0,10,0,0">
+            <Canvas
+                x:Name="TimelineArea"
+                MouseLeftButtonDown="TimelineClick"
+                MouseMove="TimelineMove"
+                MouseLeftButtonUp="TimelineRelease"
+                Background="Black">        
+
+                <!-- Draggable red playhead -->
+                <Rectangle x:Name="Playhead"
+                   Width="3"
+                   Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"
+                   Fill="Red"
+                   HorizontalAlignment="Left"
+                   />
+            </Canvas>
+
+            
+        </Grid>
 
     </Grid>
 </Window>
