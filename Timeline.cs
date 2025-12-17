@@ -26,6 +26,23 @@ namespace VESCO
         {
             return await VideoTracks[0].getFrameAt(seconds);
         }
+
+        public double getTotalDuration()
+        {
+            double maxDuration = 0;
+            foreach (var track in VideoTracks)
+            {
+                foreach (var clip in track.Clips)
+                {
+                    double clipEnd = clip.TimelineStart + clip.Source.Length;
+                    if (clipEnd > maxDuration)
+                    {
+                        maxDuration = clipEnd;
+                    }
+                }
+            }
+            return maxDuration;
+        }
     }
 
     public abstract class Track<TClip> where TClip : Clip
@@ -38,7 +55,25 @@ namespace VESCO
             Name = name;
         }
 
-        public void AddClip(TClip clip) => Clips.Add(clip);
+        public void AddClip(TClip clip)
+        {
+            double newClipStart = clip.TimelineStart;
+            double newClipEnd = clip.TimelineStart + clip.Source.Length;
+            
+            foreach (var existingClip in Clips)
+            {
+                double existingClipStart = existingClip.TimelineStart;
+                double existingClipEnd = existingClip.TimelineStart + existingClip.Source.Length;
+
+                // Check if there's an overlap
+                if (newClipStart < existingClipEnd && newClipEnd > existingClipStart)
+                {
+                    throw new InvalidOperationException($"Clip '{clip.Name}' overlaps with existing clip '{existingClip.Name}' on track '{Name}'.");
+                }
+            }
+
+            Clips.Add(clip);
+        }
         public void RemoveClip(TClip clip) => Clips.Remove(clip);
     }
 

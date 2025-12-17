@@ -1,18 +1,15 @@
 ﻿using Microsoft.Win32;
 using System.Diagnostics;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
-using Xabe.FFmpeg;
 
 namespace VESCO
 {
     public partial class MainWindow : Window
     {
         private string _videoPath;
-        private double _fps = 30;
+        private double FPS = 30;
         private double _currentTime; // seconds
         private double _videoDuration; // seconds
         private bool _isDraggingPlayhead = false;
@@ -21,7 +18,7 @@ namespace VESCO
         public MainWindow()
         {
             InitializeComponent();
-            timeline = new Timeline(_fps);
+            timeline = new Timeline(FPS);
         }
 
         protected override async void OnKeyDown(KeyEventArgs e)
@@ -31,10 +28,10 @@ namespace VESCO
             if (string.IsNullOrEmpty(_videoPath))
                 return;
 
-            if (_fps <= 0)
+            if (timeline.fps <= 0)
                 return;
 
-            double frameStep = 1.0 / _fps;
+            double frameStep = 1.0 / timeline.fps;
 
             if (e.Key == Key.Right)
             {
