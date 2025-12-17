@@ -1,20 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
+using Xabe.FFmpeg;
 
 namespace VESCO
 {
     public class Timeline
     {
-        private double fps { get; set; }
+        public double fps { get; set; }
         public List<VideoTrack> VideoTracks { get; set; } = new();
         public List<AudioTrack> AudioTracks { get; set; } = new();
 
         public Timeline(double fps)
         {
             this.fps = fps;
+            VideoTracks.Add(new VideoTrack("V1"));
+            AudioTracks.Add(new AudioTrack("A1"));
+        }
+
+        public async Task<BitmapImage> getFrameAt(double seconds)
+        {
+            return await VideoTracks[0].getFrameAt(seconds);
         }
     }
 
@@ -35,6 +45,21 @@ namespace VESCO
     public class VideoTrack : Track<VideoClip>
     {
         public VideoTrack(string name) : base(name) { }
+
+        public async Task<BitmapImage> getFrameAt(double seconds)
+        {
+            for (int i = 0; i < Clips.Count; i++)
+            {
+                if (Clips[i].TimelineStart <= seconds && Clips[i].TimelineStart + Clips[i].Source.Length > seconds)
+                {
+                    double srcTime = seconds - Clips[i].TimelineStart + Clips[i].SourceStart;
+
+                    return await Clips[i].getFrameAt(seconds);
+                }   
+            }
+
+            return null;
+        }
     }
 
     public class AudioTrack : Track<AudioClip>
@@ -46,11 +71,13 @@ namespace VESCO
     {
         public string FilePath { get; set; }
         public long FrameCount { get; set; }
+        public double Length { get; set; }
 
-        public SourceMedia(string filePath, long frameCount)
+        public SourceMedia(string filePath, long frameCount, double length)
         {
             FilePath = filePath;
             FrameCount = frameCount;
+            Length = length;
         }
     }
 
@@ -58,17 +85,17 @@ namespace VESCO
     {
         public string Name { get; set; }
 
-        public long SourceStartFrame { get; set; }
+        public double SourceStart { get; set; }
 
-        public long TimelineStartFrame { get; set; }
+        public double TimelineStart { get; set; }
 
         public SourceMedia Source { get; set; }
 
-        protected Clip(string name, long sourceStartFrame, long timelineStartFrame, SourceMedia source)
+        protected Clip(string name, double sourceStart, double timelineStart, SourceMedia source)
         {
             Name = name;
-            SourceStartFrame = sourceStartFrame;
-            TimelineStartFrame = timelineStartFrame;
+            SourceStart = sourceStart;
+            TimelineStart = timelineStart;
             Source = source;
         }
     }
@@ -77,6 +104,34 @@ namespace VESCO
     {
         public VideoClip(string name, long srcStart, long timelineStart, SourceMedia source)
             : base(name, srcStart, timelineStart, source) { }
+
+        public async Task<BitmapImage> getFrameAt(double seconds)
+        {
+            if (string.IsNullOrEmpty(Source.FilePath))
+                return null;
+
+            string tempFrame = Path.Combine(Path.GetTempPath(), $"frame_{Guid.NewGuid()}.png");
+
+            double srcTime = seconds + SourceStart;
+
+            var conversion = Xabe.FFmpeg.FFmpeg.Conversions.New()
+                .AddParameter($"-ss {srcTime.ToString(System.Globalization.CultureInfo.InvariantCulture)}")
+                .AddParameter($"-i \"{Source.FilePath}\"")
+                .AddParameter("-vframes 1")
+                .AddParameter($"\"{tempFrame}\"", ParameterPosition.PostInput);
+
+            await conversion.Start();
+
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.UriSource = new Uri(tempFrame);
+            bmp.EndInit();
+
+            try { File.Delete(tempFrame); } catch { }
+
+            return bmp;
+        }
     }
 
     public class AudioClip : Clip

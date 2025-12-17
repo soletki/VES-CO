@@ -1,28 +1,27 @@
 ﻿using Microsoft.Win32;
-using System;
 using System.Diagnostics;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using Xabe.FFmpeg;
-using System.Linq;
 
 namespace VESCO
 {
     public partial class MainWindow : Window
     {
         private string _videoPath;
-        private double _fps;
+        private double _fps = 30;
         private double _currentTime; // seconds
         private double _videoDuration; // seconds
         private bool _isDraggingPlayhead = false;
+        private Timeline timeline;
 
         public MainWindow()
         {
             InitializeComponent();
+            timeline = new Timeline(_fps);
         }
 
         protected override async void OnKeyDown(KeyEventArgs e)
@@ -40,14 +39,14 @@ namespace VESCO
             if (e.Key == Key.Right)
             {
                 _currentTime = Math.Min(_videoDuration, _currentTime + frameStep);
-                previewImage.Source = await GetFrameAtTimeAsync(_currentTime);
+                previewImage.Source = await timeline.getFrameAt(_currentTime);
                 UpdatePlayheadFromTime();
                 e.Handled = true;
             }
             else if (e.Key == Key.Left)
             {
                 _currentTime = Math.Max(0, _currentTime - frameStep);
-                previewImage.Source = await GetFrameAtTimeAsync(_currentTime);
+                previewImage.Source = await timeline.getFrameAt(_currentTime);
                 UpdatePlayheadFromTime();
                 e.Handled = true;
             }
@@ -76,47 +75,22 @@ namespace VESCO
                 // Get video duration
                 var info = await Xabe.FFmpeg.FFmpeg.GetMediaInfo(_videoPath);
                 _videoDuration = info.Duration.TotalSeconds;
-
                 var videoStream = info.VideoStreams.FirstOrDefault();
-                _fps = videoStream.Framerate;
+
+                timeline.fps = videoStream.Framerate;
+                
+                SourceMedia sourceMedia = new SourceMedia(_videoPath, (long)(timeline.fps * _videoDuration), _videoDuration);
+                timeline.VideoTracks[0].AddClip(new VideoClip(sourceMedia.FilePath, 0, 0, sourceMedia));
 
                 _currentTime = 0;
 
                 Debug.WriteLine($"Loaded video: {_videoPath}, Duration: {_videoDuration}s");
 
                 // Show first frame
-                var firstFrame = await GetFrameAtTimeAsync(0);
+                //var firstFrame = await GetFrameAtTimeAsync(0);
+                var firstFrame = await timeline.getFrameAt(0);
                 previewImage.Source = firstFrame;
             }
-        }
-
-        /// <summary>
-        /// Extract a single frame at a given timestamp
-        /// </summary>
-        private async Task<BitmapImage> GetFrameAtTimeAsync(double seconds)
-        {
-            if (string.IsNullOrEmpty(_videoPath))
-                return null;
-
-            string tempFrame = Path.Combine(Path.GetTempPath(), $"frame_{Guid.NewGuid()}.png");
-
-            var conversion = Xabe.FFmpeg.FFmpeg.Conversions.New()
-                .AddParameter($"-ss {seconds.ToString(System.Globalization.CultureInfo.InvariantCulture)}")
-                .AddParameter($"-i \"{_videoPath}\"")
-                .AddParameter("-vframes 1")
-                .AddParameter($"\"{tempFrame}\"", ParameterPosition.PostInput);
-
-            await conversion.Start();
-
-            var bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.UriSource = new Uri(tempFrame);
-            bmp.EndInit();
-
-            try { File.Delete(tempFrame); } catch { }
-
-            return bmp;
         }
 
         /// <summary>
@@ -162,7 +136,7 @@ namespace VESCO
             _currentTime = time;
 
             // Load frame
-            var frame = await GetFrameAtTimeAsync(time);
+            var frame = await timeline.getFrameAt(time);
             previewImage.Source = frame;
         }
     }
