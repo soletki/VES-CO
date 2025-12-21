@@ -53,23 +53,32 @@
         <!-- BOTTOM-RIGHT TIMELINE AREA -->
         
         <Grid Grid.Row="1" Grid.Column="1" Margin="0,10,0,0">
-            <Canvas
-                x:Name="TimelineArea"
-                MouseLeftButtonDown="TimelineClick"
-                MouseMove="TimelineMove"
-                MouseLeftButtonUp="TimelineRelease"
-                Background="Black">        
+            <ScrollViewer
+                HorizontalScrollBarVisibility="Auto"
+                VerticalScrollBarVisibility="Disabled"
+                Background="Transparent">
 
-                <!-- Draggable red playhead -->
-                <Rectangle x:Name="Playhead"
-                   Width="3"
-                   Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"
-                   Fill="Red"
-                   HorizontalAlignment="Left"
-                   />
-            </Canvas>
+                <Canvas
+                    x:Name="TimelineArea"
+                    Width="3000"
+                    Background="Black"
+                    MouseLeftButtonDown="TimelineClick"
+                    MouseMove="TimelineMove"
+                    MouseLeftButtonUp="TimelineRelease">
 
-            
+                    <!-- Draggable red playhead -->
+                    <Rectangle
+                        x:Name="Playhead"
+                        Width="3"
+                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"
+                        Fill="Red"
+                        Canvas.Left="0"
+                        Panel.ZIndex="10"/>
+
+                </Canvas>
+            </ScrollViewer>
+
+
         </Grid>
 
     </Grid>
