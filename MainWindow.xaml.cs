@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using VESCO.Timeline;
 
 namespace VESCO
 {
@@ -12,13 +13,13 @@ namespace VESCO
         private double FPS = 30;
         private double _currentTime; // seconds
         private bool _isDraggingPlayhead = false;
-        private Timeline timeline;
+        private Timeline.Timeline timeline;
         private double timeLineDurationBuffer = 10*60; //10 minutes buffer
 
         public MainWindow()
         {
             InitializeComponent();
-            timeline = new Timeline(FPS);
+            timeline = new Timeline.Timeline(FPS);
         }
 
         protected override async void OnKeyDown(KeyEventArgs e)
