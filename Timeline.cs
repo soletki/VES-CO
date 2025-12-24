@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -24,7 +25,7 @@ namespace VESCO
 
         public async Task<BitmapImage> getFrameAt(double seconds)
         {
-            return await VideoTracks[0].getFrameAt(seconds);
+            return await VideoTracks[0].getFrameAt(seconds, fps);
         }
 
         public double getTotalDuration()
@@ -65,7 +66,6 @@ namespace VESCO
                 double existingClipStart = existingClip.TimelineStart;
                 double existingClipEnd = existingClip.TimelineStart + existingClip.Source.Length;
 
-                // Check if there's an overlap
                 if (newClipStart < existingClipEnd && newClipEnd > existingClipStart)
                 {
                     throw new InvalidOperationException($"Clip '{clip.Name}' overlaps with existing clip '{existingClip.Name}' on track '{Name}'.");
@@ -81,20 +81,31 @@ namespace VESCO
     {
         public VideoTrack(string name) : base(name) { }
 
-        public async Task<BitmapImage> getFrameAt(double seconds)
+        public async Task<BitmapImage> getFrameAt(
+            double timelineSeconds,
+            double timelineFps
+        )
         {
-            for (int i = 0; i < Clips.Count; i++)
+            foreach (var clip in Clips)
             {
-                if (Clips[i].TimelineStart <= seconds && Clips[i].TimelineStart + Clips[i].Source.Length > seconds)
-                {
-                    double srcTime = seconds - Clips[i].TimelineStart + Clips[i].SourceStart;
+                double clipStart = clip.TimelineStart;
+                double clipEnd = clip.TimelineStart + clip.Source.Length;
 
-                    return await Clips[i].getFrameAt(srcTime);
-                }   
+                if (timelineSeconds >= clipStart &&
+                    timelineSeconds < clipEnd)
+                {
+                    var frame = await clip.getFrameAt(timelineSeconds, timelineFps);
+                    if (frame != null)
+                        Debug.WriteLine($"[Timeline] Retrieved frame from clip '{clip.Name}' at {timelineSeconds:F2}s");
+                    return frame;
+
+                }
             }
 
+            Debug.WriteLine($"[Timeline] No clip found at {timelineSeconds:F2}s on track '{Name}'");
             return null;
         }
+
     }
 
     public class AudioTrack : Track<AudioClip>
@@ -140,45 +151,67 @@ namespace VESCO
         public VideoClip(string name, double srcStart, double timelineStart, SourceMedia source)
             : base(name, srcStart, timelineStart, source) { }
 
-        public async Task<BitmapImage> getFrameAt(double seconds)
+        public async Task<BitmapImage?> getFrameAt(
+            double timelineSeconds,
+            double timelineFps
+        )
         {
             if (string.IsNullOrEmpty(Source.FilePath))
                 return null;
 
-            string tempFrame = Path.Combine(Path.GetTempPath(), $"frame_{Guid.NewGuid()}.jpg");
+            double clipStart = TimelineStart;
+            double clipEnd = TimelineStart + Source.Length;
 
-            double srcTime = seconds + SourceStart;
+            if (timelineSeconds < clipStart || timelineSeconds >= clipEnd)
+                return null;
 
-            var conversion = Xabe.FFmpeg.FFmpeg.Conversions.New()
-                .AddParameter($"-ss {srcTime.ToString(System.Globalization.CultureInfo.InvariantCulture)}")
-                .AddParameter($"-i \"{Source.FilePath}\"")
-                .AddParameter("-vf scale=720:-1")
-                .AddParameter("-vframes 1")
-                .AddParameter($"\"{tempFrame}\"", ParameterPosition.PostInput)
-                .AddParameter("-q:v 3");
+            double frameDuration = 1.0 / timelineFps;
 
+            double srcTime = (timelineSeconds - clipStart) + SourceStart;
 
-            await conversion.Start();
+            double maxSrcTime = SourceStart + Source.Length - frameDuration;
+            srcTime = Math.Max(SourceStart, Math.Min(srcTime, maxSrcTime));
 
-            var bmp = new BitmapImage();
-            bmp.BeginInit();
-            bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.UriSource = new Uri(tempFrame);
+            string tempFrame = Path.Combine(
+                Path.GetTempPath(),
+                $"{Guid.NewGuid()}.jpg"
+            );
+
             try
             {
-                bmp.EndInit();
+                var conversion = Xabe.FFmpeg.FFmpeg.Conversions.New()
+                    .AddParameter(
+                        $"-ss {srcTime.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                        ParameterPosition.PreInput
+                    )
+                    .AddParameter($"-i \"{Source.FilePath}\"")
+                    .AddParameter("-vf scale=640:-1")
+                    .AddParameter("-vframes 1")
+                    .AddParameter("-q:v 3")
+                    .AddParameter($"\"{tempFrame}\"", ParameterPosition.PostInput);
+
+                await conversion.Start();
             }
             catch
             {
                 return null;
             }
-            
 
+            if (!File.Exists(tempFrame))
+                return null;
+
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.UriSource = new Uri(tempFrame);
+            bmp.EndInit();
 
             try { File.Delete(tempFrame); } catch { }
 
             return bmp;
         }
+
+
     }
 
     public class AudioClip : Clip
