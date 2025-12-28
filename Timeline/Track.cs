@@ -13,12 +13,12 @@
         public void AddClip(TClip clip)
         {
             double newClipStart = clip.TimelineStart;
-            double newClipEnd = clip.TimelineStart + clip.Source.Length;
+            double newClipEnd = clip.TimelineStart + clip.Source.FrameCount;
 
             foreach (var existingClip in Clips)
             {
                 double existingClipStart = existingClip.TimelineStart;
-                double existingClipEnd = existingClip.TimelineStart + existingClip.Source.Length;
+                double existingClipEnd = existingClip.TimelineStart + existingClip.Source.FrameCount;
 
                 if (newClipStart < existingClipEnd && newClipEnd > existingClipStart)
                 {

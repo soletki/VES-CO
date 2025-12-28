@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,8 +11,8 @@ namespace VESCO
 {
     public partial class MainWindow : Window
     {
-        private double FPS = 30;
-        private double _currentTime; // seconds
+        private const double TimelineFPS = 30;
+        private long _currentFrame;
         private bool _isDraggingPlayhead = false;
         private Timeline.Timeline timeline;
         private double timeLineDurationBuffer = 10*60; //10 minutes buffer
@@ -19,33 +20,31 @@ namespace VESCO
         public MainWindow()
         {
             InitializeComponent();
-            timeline = new Timeline.Timeline(FPS);
+            timeline = new Timeline.Timeline(TimelineFPS);
         }
 
         protected override async void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
 
-            if (timeline.getTotalDuration()<=0)
+            long totalFrames = timeline.GetTotalFrames();
+            long bufferFrames = (long)(timeLineDurationBuffer * TimelineFPS);
+
+            if (totalFrames <= 0)
                 return;
 
-            if (timeline.fps <= 0)
-                return;
-
-            double frameStep = 1.0 / timeline.fps;
+            double frameStep = 1.0 / timeline.Fps;
 
             if (e.Key == Key.OemPeriod)
             {
-                _currentTime = Math.Min(timeline.getTotalDuration() + timeLineDurationBuffer, _currentTime + frameStep);
-                previewImage.Source = await timeline.getFrameAt(_currentTime);
-                UpdatePlayheadFromTime();
+                _currentFrame = Math.Min(totalFrames + bufferFrames, _currentFrame + 1);
+                UpdatePreviewFromFrame();
                 e.Handled = true;
             }
             else if (e.Key == Key.OemComma)
             {
-                _currentTime = Math.Max(0, _currentTime - frameStep);
-                previewImage.Source = await timeline.getFrameAt(_currentTime);
-                UpdatePlayheadFromTime();
+                _currentFrame = Math.Max(0, _currentFrame - 1);
+                UpdatePreviewFromFrame();
                 e.Handled = true;
             }
             else if (e.Key == Key.OemPlus)
@@ -55,23 +54,19 @@ namespace VESCO
             }
             else if (e.Key == Key.OemMinus)
             {
-                TimelineArea.Width -= 100;
+                TimelineArea.Width = Math.Max(200, TimelineArea.Width - 100);
                 UpdateClipPositions();
             }
         }
 
-        private void UpdatePlayheadFromTime()
+        private void UpdatePreviewFromFrame()
         {
-            if (timeline.getTotalDuration() <= 0)
-                return;
-
-            double x = (_currentTime / (timeline.getTotalDuration()+timeLineDurationBuffer)) * TimelineArea.ActualWidth;
-            Canvas.SetLeft(Playhead, x);
+            previewImage.Source = timeline.GetFrameAtFrame(_currentFrame);
         }
 
-        private async void OpenVideo_Click(object sender, RoutedEventArgs e)
+        private void OpenVideo_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new OpenFileDialog()
+            var dialog = new OpenFileDialog
             {
                 Filter = "Video Files|*.mp4;*.avi;*.mov;*.mkv"
             };
@@ -79,160 +74,111 @@ namespace VESCO
             if (dialog.ShowDialog() != true)
                 return;
 
-            var _videoPath = dialog.FileName;
+            var source = new SourceMedia(dialog.FileName);
 
-            var info = await Xabe.FFmpeg.FFmpeg.GetMediaInfo(_videoPath);
-            var videoStream = info.VideoStreams.FirstOrDefault();
-            if (videoStream == null)
-            {
-                MessageBox.Show("No video stream found!");
-                return;
-            }
+            long snapFrame = GetSnapFrameForNewClip(timeline.VideoTracks[0]);
 
-            var fps = videoStream.Framerate;
+            var clip = new VideoClip(
+                name: Path.GetFileName(dialog.FileName),
+                sourceStartFrame: 0,
+                timelineStartFrame: snapFrame,
+                source: source
+            );
 
-            long frameCount = 0;
-            var psi = new ProcessStartInfo
-            {
-                FileName = "ffprobe",
-                Arguments = $"-v error -select_streams v:0 -count_frames -show_entries stream=nb_read_frames -print_format csv \"{_videoPath}\"",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+            timeline.VideoTracks[0].AddClip(clip);
 
-            using (var process = Process.Start(psi))
-            {
-                string output = await process.StandardOutput.ReadToEndAsync();
-                process.WaitForExit();
-
-                var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-                foreach (var line in lines)
-                {
-                    Debug.WriteLine($"ffprobe output line: {line}");
-                    if (line.StartsWith("stream"))
-                    {
-                        var parts = line.Split(',');
-                        if (parts.Length == 2 && long.TryParse(parts[1], out var n))
-                        {
-                            frameCount = n;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (frameCount == 0)
-            {
-                MessageBox.Show("Failed to get frame count!");
-                return;
-            }
-
-            var videoDuration = frameCount / fps;
-
-            var timeLineStart = GetSnapTimeForNewClip(timeline.VideoTracks[0]);
-
-            SourceMedia sourceMedia = new SourceMedia(_videoPath, frameCount, videoDuration);
-            timeline.VideoTracks[0].AddClip(new VideoClip(sourceMedia.FilePath, 0, timeLineStart, sourceMedia));
-
-            _currentTime = 0;
-
-            Debug.WriteLine($"Loaded video: {_videoPath}");
-            Debug.WriteLine($"FPS: {fps}, Frame count: {frameCount}, Duration: {videoDuration}s, Timeline start: {timeLineStart}");
-
-            var firstFrame = await timeline.getFrameAt(0);
-            previewImage.Source = firstFrame;
-
+            _currentFrame = snapFrame;
+            UpdatePreviewFromFrame();
             UpdateClipPositions();
         }
 
 
-        private double GetSnapTimeForNewClip(VideoTrack track)
+
+        private long GetSnapFrameForNewClip(VideoTrack track)
         {
             if (track.Clips.Count == 0)
                 return 0;
 
-            var lastClip = track.Clips
-                .OrderBy(c => c.TimelineStart)
-                .Last();
+            long maxEnd = 0;
 
-            return lastClip.TimelineStart + lastClip.Source.Length;
+            foreach (var clip in track.Clips)
+            {
+                long clipEnd = clip.TimelineStart + clip.Source.FrameCount;
+                if (clipEnd > maxEnd)
+                    maxEnd = clipEnd;
+            }
+
+            return maxEnd;
         }
 
 
-        private async void TimelineClick(object sender, MouseButtonEventArgs e)
+
+        private void TimelineClick(object sender, MouseButtonEventArgs e)
         {
             _isDraggingPlayhead = true;
             Playhead.CaptureMouse();
-            await UpdateFrameFromMouseAsync(e);
+            UpdateFrameFromMouse(e);
         }
 
-        private async void TimelineMove(object sender, MouseEventArgs e)
+        private void TimelineMove(object sender, MouseEventArgs e)
         {
             if (_isDraggingPlayhead)
-            {
-                await UpdateFrameFromMouseAsync(e);
-            }
+                UpdateFrameFromMouse(e);
         }
 
-        private async void TimelineRelease(object sender, MouseButtonEventArgs e)
+        private void TimelineRelease(object sender, MouseButtonEventArgs e)
         {
             _isDraggingPlayhead = false;
             Playhead.ReleaseMouseCapture();
-            await UpdateFrameFromMouseAsync(e);
         }
 
-        private async Task UpdateFrameFromMouseAsync(MouseEventArgs e)
+        private void UpdateFrameFromMouse(MouseEventArgs e)
         {
-            if (timeline.getTotalDuration() <= 0) return;
+            double x = e.GetPosition(TimelineArea).X;
+            x = Math.Clamp(x, 0, TimelineArea.Width);
+            Canvas.SetLeft(Playhead, x);
 
-            double clickX = e.GetPosition(TimelineArea).X;
-            clickX = Math.Max(0, Math.Min(TimelineArea.ActualWidth, clickX));
 
-            Canvas.SetLeft(Playhead, clickX);
+            long totalFrames =
+                timeline.GetTotalFrames() +
+                (long)(timeLineDurationBuffer * TimelineFPS);
 
-            double time = (clickX / TimelineArea.ActualWidth) * (timeline.getTotalDuration() + timeLineDurationBuffer);
-            _currentTime = time;
-
-            var frame = await timeline.getFrameAt(time);
-            previewImage.Source = frame;
+            _currentFrame = (long)((x / TimelineArea.Width) * totalFrames);
+            UpdatePreviewFromFrame();
         }
 
         private void DrawVideoClip(VideoClip clip)
         {
-            double clipX = clip.TimelineStart / (timeline.getTotalDuration() + timeLineDurationBuffer) * TimelineArea.ActualWidth;
-            double clipWidth = clip.Source.Length / (timeline.getTotalDuration() + timeLineDurationBuffer) * TimelineArea.ActualWidth;
-            double clipHeight = 60;
+            long totalFrames =
+                timeline.GetTotalFrames() +
+                (long)(timeLineDurationBuffer * TimelineFPS);
 
+            double clipX =
+                (clip.TimelineStart / (double)totalFrames) * TimelineArea.ActualWidth;
+
+            double clipWidth =
+                (clip.Source.FrameCount / (double)totalFrames) * TimelineArea.ActualWidth;
 
             var rect = new Border
             {
-                Width = clipWidth,
-                Height = clipHeight,
-                Background = new SolidColorBrush(Color.FromRgb(70, 130, 180)), // steel blue
+                Width = Math.Max(4, clipWidth),
+                Height = 60,
+                Background = new SolidColorBrush(Color.FromRgb(70, 130, 180)),
                 BorderBrush = Brushes.Black,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(3)
+                CornerRadius = new CornerRadius(3),
+                Child = new TextBlock
+                {
+                    Text = clip.Name,
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(4, 2, 0, 0)
+                }
             };
 
             Canvas.SetLeft(rect, clipX);
             Canvas.SetTop(rect, 10);
 
-            var text = new TextBlock
-            {
-                Text = clip.Name,
-                Foreground = Brushes.White,
-                Margin = new Thickness(4, 2, 0, 0)
-            };
-
-            rect.Child = text;
-
-
             TimelineArea.Children.Add(rect);
-
-            Debug.WriteLine($"Drawing clip at X={clipX}, W={clipWidth}");
-
-
         }
 
         private void ClearTimelineClips()
@@ -251,10 +197,9 @@ namespace VESCO
         private void UpdateClipPositions()
         {
             ClearTimelineClips();
-            for (int i = 0; i < timeline.VideoTracks[0].Clips.Count; i++)
-            {
-                DrawVideoClip(timeline.VideoTracks[0].Clips[i]);
-            }
+
+            foreach (var clip in timeline.VideoTracks[0].Clips)
+                DrawVideoClip(clip);
         }
     }
 

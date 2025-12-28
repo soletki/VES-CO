@@ -1,47 +1,42 @@
-﻿
-using System.IO;
-using System.Windows.Media.Imaging;
-using Xabe.FFmpeg;
+﻿using System.Windows.Media.Imaging;
 
 namespace VESCO.Timeline
 {
     public class Timeline
     {
-        public double fps { get; set; }
-        public List<VideoTrack> VideoTracks { get; set; } = new();
-        public List<AudioTrack> AudioTracks { get; set; } = new();
+        public double Fps { get; }
+        public List<VideoTrack> VideoTracks { get; } = new();
 
         public Timeline(double fps)
         {
-            this.fps = fps;
+            Fps = fps;
             VideoTracks.Add(new VideoTrack("V1"));
-            AudioTracks.Add(new AudioTrack("A1"));
         }
 
-        public async Task<BitmapImage> getFrameAt(double seconds)
+        public BitmapSource GetFrameAtTime(double seconds)
         {
-            return await VideoTracks[0].getFrameAt(seconds, fps);
+            long frame = (long)Math.Round(seconds * Fps);
+            return GetFrameAtFrame(frame);
         }
 
-        public double getTotalDuration()
+        public BitmapSource GetFrameAtFrame(long frame)
         {
-            double maxDuration = 0;
-            foreach (var track in VideoTracks)
+            return VideoTracks[0].GetFrameAt(frame);
+        }
+
+        public long GetTotalFrames()
+        {
+            long max = 0;
+            foreach (var clip in VideoTracks[0].Clips)
             {
-                foreach (var clip in track.Clips)
-                {
-                    double clipEnd = clip.TimelineStart + clip.Source.Length;
-                    if (clipEnd > maxDuration)
-                    {
-                        maxDuration = clipEnd;
-                    }
-                }
+                long end = clip.TimelineStart + clip.Source.FrameCount;
+                if (end > max)
+                    max = end;
             }
-            return maxDuration;
+            return max;
         }
+
+        public double GetTotalDuration()
+            => GetTotalFrames() / Fps;
     }
-
-    
-
-    
 }

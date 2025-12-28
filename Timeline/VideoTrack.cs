@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Windows.Media.Imaging;
+﻿using System.Windows.Media.Imaging;
 
 namespace VESCO.Timeline
 {
@@ -7,30 +6,18 @@ namespace VESCO.Timeline
     {
         public VideoTrack(string name) : base(name) { }
 
-        public async Task<BitmapImage> getFrameAt(
-            double timelineSeconds,
-            double timelineFps
-        )
+        public BitmapSource GetFrameAt(long timelineFrame)
         {
             foreach (var clip in Clips)
             {
-                double clipStart = clip.TimelineStart;
-                double clipEnd = clip.TimelineStart + clip.Source.Length;
-
-                if (timelineSeconds >= clipStart &&
-                    timelineSeconds < clipEnd)
+                if (timelineFrame >= clip.TimelineStart &&
+                    timelineFrame < clip.TimelineStart + clip.Source.FrameCount)
                 {
-                    var frame = await clip.getFrameAt(timelineSeconds, timelineFps);
-                    if (frame != null)
-                        Debug.WriteLine($"[Timeline] Retrieved frame from clip '{clip.Name}' at {timelineSeconds:F2}s");
-                    return frame;
-
+                    return clip.GetFrameAtTimelineFrame(timelineFrame);
                 }
             }
 
-            Debug.WriteLine($"[Timeline] No clip found at {timelineSeconds:F2}s on track '{Name}'");
             return null;
         }
-
     }
 }

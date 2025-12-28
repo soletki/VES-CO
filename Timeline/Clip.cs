@@ -4,13 +4,13 @@
     {
         public string Name { get; set; }
 
-        public double SourceStart { get; set; }
+        public long SourceStart { get; set; }
 
-        public double TimelineStart { get; set; }
+        public long TimelineStart { get; set; }
 
         public SourceMedia Source { get; set; }
 
-        protected Clip(string name, double sourceStart, double timelineStart, SourceMedia source)
+        protected Clip(string name, long sourceStart, long timelineStart, SourceMedia source)
         {
             Name = name;
             SourceStart = sourceStart;
