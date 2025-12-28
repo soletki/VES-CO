@@ -1,4 +1,5 @@
 ﻿using OpenCvSharp;
+using System.IO;
 
 namespace VESCO.Timeline
 {
@@ -17,5 +18,6 @@ namespace VESCO.Timeline
             FrameCount = cap.FrameCount;
             FPS = cap.Fps;
         }
+        public string FileName => Path.GetFileName(FilePath);
     }
 }

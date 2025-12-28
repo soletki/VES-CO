@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -17,10 +18,13 @@ namespace VESCO
         private Timeline.Timeline timeline;
         private double timeLineDurationBuffer = 10*60; //10 minutes buffer
 
+        public ObservableCollection<SourceMedia> MediaBin { get; } = new();
+
         public MainWindow()
         {
             InitializeComponent();
             timeline = new Timeline.Timeline(TimelineFPS);
+            DataContext = this;
         }
 
         protected override async void OnKeyDown(KeyEventArgs e)
@@ -76,22 +80,47 @@ namespace VESCO
 
             var source = new SourceMedia(dialog.FileName);
 
-            long snapFrame = GetSnapFrameForNewClip(timeline.VideoTracks[0]);
+            MediaBin.Add(source);
+        }
+
+        private void MediaBinMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (MediaBinList.SelectedItem is not SourceMedia source)
+                return;
+
+            Debug.WriteLine($"Selected item: {source.FileName}");
+
+            DragDrop.DoDragDrop(
+                MediaBinList,
+                source,
+                DragDropEffects.Copy);
+        }
+
+        private void TimelineDrop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(typeof(SourceMedia)))
+                return;
+
+            var source = (SourceMedia)e.Data.GetData(typeof(SourceMedia));
+
+            double x = e.GetPosition(TimelineArea).X;
+            x = Math.Clamp(x, 0, TimelineArea.Width);
+
+            long totalFrames = timeline.GetTotalFrames() + (long)(timeLineDurationBuffer * timeline.Fps);
+            long startFrame = (long)((x / TimelineArea.Width) * totalFrames);
 
             var clip = new VideoClip(
-                name: Path.GetFileName(dialog.FileName),
+                source.FilePath,
                 sourceStartFrame: 0,
-                timelineStartFrame: snapFrame,
-                source: source
-            );
+                timelineStartFrame: startFrame,
+                source: source);
 
             timeline.VideoTracks[0].AddClip(clip);
 
-            _currentFrame = snapFrame;
-            UpdatePreviewFromFrame();
             UpdateClipPositions();
-        }
 
+            UpdatePreviewFromFrame();
+        }
 
 
         private long GetSnapFrameForNewClip(VideoTrack track)
