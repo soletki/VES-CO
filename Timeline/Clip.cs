@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Windows.Controls;
 
 namespace VESCO.Timeline
 {
@@ -13,6 +14,8 @@ namespace VESCO.Timeline
         public long TimelineStart { get; set; }
 
         public SourceMedia Source { get; set; }
+
+        public Border rect { get; set; }
 
         protected Clip(
             string name,

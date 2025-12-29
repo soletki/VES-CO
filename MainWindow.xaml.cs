@@ -10,6 +10,9 @@ using VESCO.Timeline;
 
 namespace VESCO
 {
+
+
+
     public partial class MainWindow : Window
     {
         private const double TimelineFPS = 60;
@@ -17,6 +20,19 @@ namespace VESCO
         private bool _isDraggingPlayhead = false;
         private Timeline.Timeline timeline;
         private double timeLineDurationBuffer = 10*60; //10 minutes buffer
+        private bool _isDraggingClip = false;
+        private Point _clipDragStartMouse;
+        private long _clipDragStartFrame;
+
+        private enum Tool
+        {
+            None,
+            Select
+        }
+
+        private Tool _activeTool = Tool.None;
+        private VideoClip _selectedClip = null;
+
 
         public ObservableCollection<SourceMedia> MediaBin { get; } = new();
 
@@ -156,25 +172,106 @@ namespace VESCO
 
         private void TimelineClick(object sender, MouseButtonEventArgs e)
         {
+            if (_activeTool == Tool.Select)
+            {
+                Point pos = e.GetPosition(TimelineArea);
+                SelectClipAtPosition(pos);
+
+                if (_selectedClip != null)
+                {
+                    _isDraggingClip = true;
+                    _clipDragStartMouse = pos;
+                    _clipDragStartFrame = _selectedClip.TimelineStart;
+                    TimelineArea.CaptureMouse();
+                }
+
+                return;
+            }
+
             _isDraggingPlayhead = true;
             Playhead.CaptureMouse();
             UpdateFrameFromMouse(e);
-            Debug.WriteLine($"Current frame: {_currentFrame}");
         }
+
 
         private void TimelineMove(object sender, MouseEventArgs e)
         {
-            if (_isDraggingPlayhead)
+            if (_isDraggingClip && _selectedClip != null)
+            {
+                Point pos = e.GetPosition(TimelineArea);
+                double deltaX = pos.X - _clipDragStartMouse.X;
+
+                long totalFrames = timeline.GetTotalFrames() + (long)(timeLineDurationBuffer * TimelineFPS);
+                long deltaFrames = (long)((deltaX / TimelineArea.Width) * totalFrames);
+
+                _selectedClip.TimelineStart = Math.Max(0, _clipDragStartFrame + deltaFrames);
+
+                UpdateClipPositions();
+                UpdatePreviewFromFrame();
+            }
+            else if (_isDraggingPlayhead)
+            {
                 UpdateFrameFromMouse(e);
-            Debug.WriteLine($"Current frame: {_currentFrame}");
+            }
+
         }
+
 
         private void TimelineRelease(object sender, MouseButtonEventArgs e)
         {
+            if (_isDraggingClip)
+            {
+                _isDraggingClip = false;
+                TimelineArea.ReleaseMouseCapture();
+                Debug.WriteLine($"Clip dropped: {_selectedClip?.Name}");
+                return;
+            }
+
             _isDraggingPlayhead = false;
             Playhead.ReleaseMouseCapture();
-            Debug.WriteLine($"Current frame: {_currentFrame}");
         }
+
+
+        private void SelectClipAtPosition(Point position)
+        {
+            long totalFrames = timeline.GetTotalFrames() + (long)(timeLineDurationBuffer * TimelineFPS);
+
+            foreach (var clip in timeline.VideoTracks[0].Clips)
+            {
+                double clipX = (clip.TimelineStart / (double)totalFrames) * TimelineArea.Width;
+                double clipWidth = (clip.Length * (timeline.Fps / clip.Source.FPS) / (double)totalFrames) * TimelineArea.Width;
+
+                if (position.X >= clipX && position.X <= clipX + clipWidth)
+                {
+                    _selectedClip = clip;
+                    HighlightSelectedClip();
+                    Debug.WriteLine($"Selected clip: {clip.Name}");
+                    return;
+                }
+            }
+
+            _selectedClip = null;
+            ClearClipHighlights();
+        }
+
+        private void HighlightSelectedClip()
+        {
+            if(_selectedClip != null && _selectedClip.rect != null)
+            {
+                ClearClipHighlights();
+                _selectedClip.rect.BorderBrush = Brushes.Red;
+            }
+
+            Debug.WriteLine($"Highlighted clip has no rect");
+        }
+
+        private void ClearClipHighlights()
+        {
+            foreach (var child in TimelineArea.Children.OfType<Border>())
+                child.BorderBrush = Brushes.Black;
+        }
+
+
 
         private void UpdateFrameFromMouse(MouseEventArgs e)
         {
@@ -220,6 +317,9 @@ namespace VESCO
             Canvas.SetLeft(rect, clipX);
             Canvas.SetTop(rect, 10);
 
+            clip.rect = rect;
+            Debug.WriteLine($"Set rect for clip");
+
             TimelineArea.Children.Add(rect);
         }
 
@@ -242,7 +342,24 @@ namespace VESCO
 
             foreach (var clip in timeline.VideoTracks[0].Clips)
                 DrawVideoClip(clip);
+
+            HighlightSelectedClip();
         }
+
+        private void SelectToolClick(object sender, RoutedEventArgs e)
+        {
+            if (_activeTool != Tool.Select)
+            {
+                _activeTool = Tool.Select;
+                SelectTool.BorderBrush = Brushes.Blue;
+            }
+            else
+            {
+                _activeTool = Tool.None;
+                SelectTool.BorderBrush = Brushes.Black;
+            }
+        }
+
     }
 
 

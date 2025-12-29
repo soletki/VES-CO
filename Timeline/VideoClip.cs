@@ -30,7 +30,7 @@ namespace VESCO.Timeline
             if (!_capture.Read(mat) || mat.Empty())
                 return null;
 
-            Cv2.Resize(mat, mat, new OpenCvSharp.Size(), 0.25, 0.25, InterpolationFlags.Nearest);
+            Cv2.Resize(mat, mat, new OpenCvSharp.Size(), 1, 1, InterpolationFlags.Nearest);
 
             return mat.ToBitmapSource();
         }
