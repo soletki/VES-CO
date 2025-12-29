@@ -1,5 +1,6 @@
 ﻿using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
 namespace VESCO.Timeline
@@ -34,6 +35,34 @@ namespace VESCO.Timeline
 
             return mat.ToBitmapSource();
         }
+
+        public (VideoClip first, VideoClip second) SplitAtFrame(long splitFrame, Timeline timeline)
+        {
+            // Check if the split frame is inside the clip
+            if (splitFrame <= 0 || splitFrame >= this.Length)
+                return (this, null);
+
+            // First clip: SourceStart → splitFrame
+            var firstClip = new VideoClip(
+                Name,
+                SourceStart,                 // SourceStart in frames
+                TimelineStart,               // TimelineStart in frames
+                new SourceMedia(Source.FilePath),
+                length: splitFrame
+            );
+
+            // Second clip: splitFrame → end of original clip
+            var secondClip = new VideoClip(
+                Name,
+                splitFrame,                  // SourceStart in frames
+                (long)(TimelineStart + splitFrame * (timeline.Fps / Source.FPS)), // TimelineStart in frames
+                new SourceMedia(Source.FilePath),
+                length: Length - splitFrame
+            );
+
+            return (firstClip, secondClip);
+        }
+
 
     }
 }
