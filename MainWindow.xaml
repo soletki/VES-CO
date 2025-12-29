@@ -52,7 +52,7 @@
                      Grid.Row="1"
                      Margin="0,5,0,0"
                      ItemsSource="{Binding MediaBin}"
-                     PreviewMouseLeftButtonDown="MediaBinMouseDown">       
+                     PreviewMouseLeftButtonDown="MediaBinMouseDown">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Border Background="#333"
@@ -64,44 +64,67 @@
                             </Border>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
-                    
+
                 </ListBox>
 
             </Border>
         </Grid>
 
-        <!-- BOTTOM-RIGHT TIMELINE AREA -->
-        
+        <!-- BOTTOM-RIGHT TIMELINE + CONTROLS -->
         <Grid Grid.Row="1" Grid.Column="1" Margin="0,10,0,0">
-            <ScrollViewer
-                HorizontalScrollBarVisibility="Auto"
-                VerticalScrollBarVisibility="Disabled"
-                Background="Transparent">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-                <Canvas
-                    x:Name="TimelineArea"
-                    Width="3000"
-                    Background="Black"
-                    MouseLeftButtonDown="TimelineClick"
-                    MouseMove="TimelineMove"
-                    MouseLeftButtonUp="TimelineRelease"
-                    AllowDrop="True"
-                    Drop="TimelineDrop">
+            <!-- TOOLBAR -->
+            <Border Background="#2D2D30" Padding="6">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
-                    <!-- Draggable red playhead -->
-                    <Rectangle
-                        x:Name="Playhead"
-                        Width="3"
-                        Height="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=Canvas}}"
-                        Fill="Red"
-                        Canvas.Left="0"
-                        Panel.ZIndex="10"/>
+                    <!-- Transport controls -->
+                    <Button Content="⏮" Width="32" Margin="2"
+                            Name="FrameBack"
+                            Click="FrameBackClick"/>
+                    <Button Content="⏭" Width="32" Margin="2"
+                            Name="FrameForward"
+                            Click="FrameForwardClick"/>
+                    <Button Content="▶" Width="32" Margin="6,2,2,2"/>
 
+                    <Separator Width="12"/>
+
+                    <!-- Editing tools -->
+                    <Button Content="✋" Margin="2"/>
+                    <Button Content="✂" Margin="2"/>
+                    <Button Content="⬌" Margin="2"/>
+
+                </StackPanel>
+            </Border>
+
+            <!-- TIMELINE SCROLL AREA -->
+            <ScrollViewer Grid.Row="1"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Disabled"
+                  Background="Black">
+
+                <Canvas x:Name="TimelineArea"
+                Width="3000"
+                Background="#111"
+                MouseLeftButtonDown="TimelineClick"
+                MouseMove="TimelineMove"
+                MouseLeftButtonUp="TimelineRelease"
+                AllowDrop="True"
+                Drop="TimelineDrop">
+
+                    <!-- Playhead -->
+                    <Rectangle x:Name="Playhead"
+                       Width="3"
+                       Fill="Red"
+                       Height="450"
+                       Panel.ZIndex="10"/>
                 </Canvas>
             </ScrollViewer>
-
-
         </Grid>
+
 
     </Grid>
 </Window>

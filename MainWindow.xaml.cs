@@ -12,7 +12,7 @@ namespace VESCO
 {
     public partial class MainWindow : Window
     {
-        private const double TimelineFPS = 30;
+        private const double TimelineFPS = 60;
         private long _currentFrame;
         private bool _isDraggingPlayhead = false;
         private Timeline.Timeline timeline;
@@ -43,24 +43,46 @@ namespace VESCO
             {
                 _currentFrame = Math.Min(totalFrames + bufferFrames, _currentFrame + 1);
                 UpdatePreviewFromFrame();
+                Debug.WriteLine($"Current frame: {_currentFrame}");
                 e.Handled = true;
             }
             else if (e.Key == Key.OemComma)
             {
                 _currentFrame = Math.Max(0, _currentFrame - 1);
                 UpdatePreviewFromFrame();
+                Debug.WriteLine($"Current frame: {_currentFrame}");
                 e.Handled = true;
             }
             else if (e.Key == Key.OemPlus)
             {
-                TimelineArea.Width += 100;
+                TimelineArea.Width *= 1.2;
+                UpdatePlayheadPosition();
                 UpdateClipPositions();
             }
             else if (e.Key == Key.OemMinus)
             {
-                TimelineArea.Width = Math.Max(200, TimelineArea.Width - 100);
+                TimelineArea.Width = Math.Max(200, TimelineArea.Width / 1.2);
+                UpdatePlayheadPosition();
                 UpdateClipPositions();
             }
+        }
+
+        private void FrameBackClick(object sender, RoutedEventArgs e)
+        {
+            _currentFrame = Math.Max(0, _currentFrame - 1);
+            UpdatePlayheadPosition();
+            UpdatePreviewFromFrame();
+            Debug.WriteLine($"Current frame: {_currentFrame}");
+        }
+
+        private void FrameForwardClick(object sender, RoutedEventArgs e)
+        {
+            long totalFrames = timeline.GetTotalFrames();
+            long bufferFrames = (long)(timeLineDurationBuffer * TimelineFPS);
+            _currentFrame = Math.Min(totalFrames + bufferFrames, _currentFrame + 1);
+            UpdatePlayheadPosition();
+            UpdatePreviewFromFrame();
+            Debug.WriteLine($"Current frame: {_currentFrame}");
         }
 
         private void UpdatePreviewFromFrame()
@@ -122,57 +144,48 @@ namespace VESCO
             UpdatePreviewFromFrame();
         }
 
-
-        private long GetSnapFrameForNewClip(VideoTrack track)
+        private void UpdatePlayheadPosition()
         {
-            if (track.Clips.Count == 0)
-                return 0;
-
-            long maxEnd = 0;
-
-            foreach (var clip in track.Clips)
-            {
-                long clipEnd = clip.TimelineStart + clip.Source.FrameCount;
-                if (clipEnd > maxEnd)
-                    maxEnd = clipEnd;
-            }
-
-            return maxEnd;
+            long totalFrames =
+                timeline.GetTotalFrames() +
+                (long)(timeLineDurationBuffer * TimelineFPS);
+            double x =
+                (_currentFrame / (double)totalFrames) * TimelineArea.Width;
+            Canvas.SetLeft(Playhead, x);
         }
-
-
 
         private void TimelineClick(object sender, MouseButtonEventArgs e)
         {
             _isDraggingPlayhead = true;
             Playhead.CaptureMouse();
             UpdateFrameFromMouse(e);
+            Debug.WriteLine($"Current frame: {_currentFrame}");
         }
 
         private void TimelineMove(object sender, MouseEventArgs e)
         {
             if (_isDraggingPlayhead)
                 UpdateFrameFromMouse(e);
+            Debug.WriteLine($"Current frame: {_currentFrame}");
         }
 
         private void TimelineRelease(object sender, MouseButtonEventArgs e)
         {
             _isDraggingPlayhead = false;
             Playhead.ReleaseMouseCapture();
+            Debug.WriteLine($"Current frame: {_currentFrame}");
         }
 
         private void UpdateFrameFromMouse(MouseEventArgs e)
         {
             double x = e.GetPosition(TimelineArea).X;
             x = Math.Clamp(x, 0, TimelineArea.Width);
-            Canvas.SetLeft(Playhead, x);
-
-
             long totalFrames =
                 timeline.GetTotalFrames() +
                 (long)(timeLineDurationBuffer * TimelineFPS);
 
             _currentFrame = (long)((x / TimelineArea.Width) * totalFrames);
+            UpdatePlayheadPosition();
             UpdatePreviewFromFrame();
         }
 
@@ -183,10 +196,10 @@ namespace VESCO
                 (long)(timeLineDurationBuffer * TimelineFPS);
 
             double clipX =
-                (clip.TimelineStart / (double)totalFrames) * TimelineArea.ActualWidth;
+                (clip.TimelineStart / (double)totalFrames) * TimelineArea.Width;
 
             double clipWidth =
-                (clip.Source.FrameCount / (double)totalFrames) * TimelineArea.ActualWidth;
+                (clip.Length * (timeline.Fps/clip.Source.FPS) / (double)totalFrames) * TimelineArea.Width;
 
             var rect = new Border
             {

@@ -1,8 +1,12 @@
-﻿namespace VESCO.Timeline
+﻿using System.Diagnostics;
+
+namespace VESCO.Timeline
 {
     public abstract class Clip
     {
         public string Name { get; set; }
+
+        public long Length { get; set; }
 
         public long SourceStart { get; set; }
 
@@ -10,12 +14,22 @@
 
         public SourceMedia Source { get; set; }
 
-        protected Clip(string name, long sourceStart, long timelineStart, SourceMedia source)
+        protected Clip(
+            string name,
+            long sourceStart,
+            long timelineStart,
+            SourceMedia source,
+            long? length = null)
         {
             Name = name;
             SourceStart = sourceStart;
             TimelineStart = timelineStart;
             Source = source;
+
+            Length = length ?? (source.FrameCount - SourceStart);
+
+            Debug.WriteLine($"New clip with Length: {Length} Starting at frame: {TimelineStart}");
         }
+
     }
 }

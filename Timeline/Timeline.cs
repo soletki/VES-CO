@@ -21,20 +21,24 @@ namespace VESCO.Timeline
 
         public BitmapSource GetFrameAtFrame(long frame)
         {
-            return VideoTracks[0].GetFrameAt(frame);
+            return VideoTracks[0].GetFrameAt(frame, this);
         }
 
         public long GetTotalFrames()
         {
             long max = 0;
+
             foreach (var clip in VideoTracks[0].Clips)
             {
-                long end = clip.TimelineStart + clip.Source.FrameCount;
+                long end = (long)(clip.TimelineStart + clip.Length * (Fps/clip.Source.FPS));
+
                 if (end > max)
                     max = end;
             }
+
             return max;
         }
+
 
         public double GetTotalDuration()
             => GetTotalFrames() / Fps;
