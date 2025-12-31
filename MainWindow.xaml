@@ -94,7 +94,7 @@
 
                     <!-- Editing tools -->
                     <Button Content="✋" Margin="2"/>
-                    <Button Content="✂" Margin="2"/>
+                    <Button Content="✂" Margin="2" Name="CutTool" Click="CutToolClick"/>
                     <Button Content="⬌" Margin="2" Name="SelectTool" Click="SelectToolClick"/>
 
                 </StackPanel>

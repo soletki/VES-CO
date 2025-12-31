@@ -10,7 +10,7 @@ namespace VESCO.Timeline
         public Timeline(double fps)
         {
             Fps = fps;
-            VideoTracks.Add(new VideoTrack("V1"));
+            VideoTracks.Add(new VideoTrack("V1", Fps));
         }
 
         public BitmapSource GetFrameAtTime(double seconds)
@@ -21,7 +21,7 @@ namespace VESCO.Timeline
 
         public BitmapSource GetFrameAtFrame(long frame)
         {
-            return VideoTracks[0].GetFrameAt(frame, this);
+            return VideoTracks[0].GetFrameAt(frame);
         }
 
         public long GetTotalFrames()

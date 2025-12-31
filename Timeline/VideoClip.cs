@@ -15,9 +15,9 @@ namespace VESCO.Timeline
             _capture = new VideoCapture(source.FilePath);
         }
 
-        public BitmapSource GetFrameAtTimelineFrame(long timelineFrame, Timeline timeline)
+        public BitmapSource GetFrameAtTimelineFrame(long timelineFrame, double fps)
         {
-            double fpsRatio = Source.FPS / timeline.Fps;
+            double fpsRatio = Source.FPS / fps;
 
             long localFrame =
                 SourceStart +
