@@ -31,7 +31,7 @@ namespace VESCO.Timeline
 
             Length = length ?? (source.FrameCount - SourceStart);
 
-            Debug.WriteLine($"New clip with Length: {Length} Starting at frame: {TimelineStart}");
+            //Debug.WriteLine($"New clip with Length: {Length} Starting at frame: {TimelineStart}");
         }
 
     }

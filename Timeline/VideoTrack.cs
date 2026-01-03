@@ -21,7 +21,7 @@ namespace VESCO.Timeline
                 return;
 
             long newClipStart = clip.TimelineStart;
-            long newClipEnd = clip.TimelineStart + clip.Source.FrameCount;
+            long newClipEnd = (long)(clip.TimelineStart + clip.Length * (Fps / clip.Source.FPS));
 
             foreach (var existingClip in Clips)
             {

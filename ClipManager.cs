@@ -77,6 +77,7 @@ namespace VESCO
             {
                 _isDragging = false;
                 _timelineCanvas.ReleaseMouseCapture();
+                
                 Debug.WriteLine($"Clip dropped: {_selectedClip?.Name}");
             }
         }
@@ -132,6 +133,13 @@ namespace VESCO
                     long timelineCutFrame = _timelineController.PositionToFrame(position.X);
                     long cutFrame = (long)((timelineCutFrame - clip.TimelineStart) * (clip.Source.FPS / _timelineController.Timeline.Fps));
                     var (firstPart, secondPart) = clip.SplitAtFrame(cutFrame, _timelineController.Timeline);
+
+                    if(firstPart == null || secondPart == null)
+                    {
+                        Debug.WriteLine($"Cut failed: Invalid split at frame {cutFrame} for clip {clip.Name}");
+                        return;
+                    }
+
                     _timelineController.Timeline.VideoTracks[0].RemoveClip(clip);
                     _timelineController.Timeline.VideoTracks[0].AddClip(firstPart);
                     _timelineController.Timeline.VideoTracks[0].AddClip(secondPart);
