@@ -1,6 +1,5 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using VESCO.Timeline;
@@ -23,10 +22,11 @@ namespace VESCO
 
             _timelineController = new TimelineController(15, TimelineArea);
             _playheadController = new PlayheadController(_timelineController, Playhead, previewImage);
-            _clipManager = new ClipManager(_timelineController, TimelineArea);
+            _clipManager = new ClipManager(_timelineController, TimelineArea, TrackLabelsPanel);
             _toolManager = new ToolManager(SelectTool, CutTool);
 
             InitializeEventHandlers();
+            _clipManager.InitializeTracks();
         }
 
         private void InitializeEventHandlers()
@@ -99,7 +99,7 @@ namespace VESCO
                 var source = (SourceMedia)e.Data.GetData(typeof(SourceMedia));
                 var dropPosition = e.GetPosition(TimelineArea);
 
-                _clipManager.AddClipAtPosition(source, dropPosition.X);
+                _clipManager.AddClipAtPosition(source, dropPosition.X, dropPosition.Y);
                 _playheadController.UpdatePreview();
             }
         }
@@ -152,5 +152,19 @@ namespace VESCO
         {
             _toolManager.ToggleTool(ToolType.Cut);
         }
+
+        private void AddTrackClick(object sender, RoutedEventArgs e)
+        {
+            _clipManager.AddTrack();
+        }
+
+        private void TimelineScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
+        {
+            if (e.VerticalChange != 0)
+            {
+                LabelsScrollViewer.ScrollToVerticalOffset(e.VerticalOffset);
+            }
+        }
+
     }
 }

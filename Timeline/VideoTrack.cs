@@ -27,14 +27,6 @@ namespace VESCO.Timeline
             {
                 long existingClipStart = existingClip.TimelineStart;
                 long existingClipEnd = (long)(existingClip.TimelineStart + existingClip.Length * (Fps/existingClip.Source.FPS));
-
-                if (newClipStart < existingClipEnd && newClipEnd > existingClipStart)
-                {
-                    Debug.WriteLine($"Failed to add clip '{clip.Name}': overlaps with existing clip '{existingClip.Name}'.");
-                    Debug.WriteLine($"New Clip: Start={newClipStart}, End={newClipEnd}");
-                    Debug.WriteLine($"Existing Clip: Start={existingClipStart}, End={existingClipEnd}");
-                    return; // Don't add overlapping clips
-                }
             }
 
             Clips.Add(clip);

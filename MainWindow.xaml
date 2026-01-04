@@ -18,7 +18,7 @@
         </Grid.ColumnDefinitions>
 
 
-        <!-- TOP-RIGHT LARGE PREVIEW (Ignore top-left per your request) -->
+        <!-- TOP-RIGHT LARGE PREVIEW -->
         <Border Grid.Row="0" Grid.Column="1" Background="Black"
                 BorderBrush="Black" BorderThickness="2">
             <Image Grid.Row="1" Grid.Column="1" x:Name="previewImage" ></Image>
@@ -97,32 +97,63 @@
                     <Button Content="✂" Margin="2" Name="CutTool" Click="CutToolClick"/>
                     <Button Content="⬌" Margin="2" Name="SelectTool" Click="SelectToolClick"/>
 
+                    <Separator Width="12"/>
+
+                    <!-- Track management -->
+                    <Button Content="+ Track" Margin="2" Click="AddTrackClick"/>
+
                 </StackPanel>
             </Border>
 
             <!-- TIMELINE SCROLL AREA -->
-            <ScrollViewer Grid.Row="1"
-                  HorizontalScrollBarVisibility="Auto"
-                  VerticalScrollBarVisibility="Disabled"
-                  Background="Black">
+            <Grid Grid.Row="1" Background="Black">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                <Canvas x:Name="TimelineArea"
-                Width="3000"
-                Background="#111"
-                MouseLeftButtonDown="TimelineClick"
-                MouseMove="TimelineMove"
-                MouseLeftButtonUp="TimelineRelease"
-                AllowDrop="True"
-                Drop="TimelineDrop">
+                <!-- Track Labels Column (Fixed, no scroll) -->
+                <Border Grid.Column="0" 
+                        Background="#1E1E1E"
+                        BorderBrush="Black" 
+                        BorderThickness="0,0,1,0">
+                    <ScrollViewer x:Name="LabelsScrollViewer"
+                                  VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel x:Name="TrackLabelsPanel"
+                                   Background="#1E1E1E"
+                                   MinHeight="200">
+                            <!-- Track labels will be added here dynamically -->
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
 
-                    <!-- Playhead -->
-                    <Rectangle x:Name="Playhead"
-                       Width="3"
-                       Fill="Red"
-                       Height="450"
-                       Panel.ZIndex="10"/>
-                </Canvas>
-            </ScrollViewer>
+                <!-- Timeline Canvas Column (Scrollable) -->
+                <ScrollViewer Grid.Column="1"
+                              x:Name="TimelineScrollViewer"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto"
+                              ScrollChanged="TimelineScrollChanged">
+                    <Canvas x:Name="TimelineArea"
+                            Width="3000"
+                            MinHeight="200"
+                            Background="#111"
+                            MouseLeftButtonDown="TimelineClick"
+                            MouseMove="TimelineMove"
+                            MouseLeftButtonUp="TimelineRelease"
+                            AllowDrop="True"
+                            Drop="TimelineDrop">
+
+                        <!-- Playhead -->
+                        <Rectangle x:Name="Playhead"
+                                   Width="3"
+                                   Fill="Red"
+                                   Panel.ZIndex="10"/>
+
+                        <!-- Track containers will be added here dynamically -->
+                    </Canvas>
+                </ScrollViewer>
+            </Grid>
         </Grid>
 
 

@@ -6,7 +6,7 @@ namespace VESCO
     {
         private const double MinTimelineWidth = 200;
         private const double ZoomFactor = 1.2;
-        private const double DefaultBufferMinutes = 10;
+        private const double DefaultBufferMinutes = 5;
 
         public Timeline.Timeline Timeline { get; }
         public Canvas TimelineCanvas { get; }
