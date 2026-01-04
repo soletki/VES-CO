@@ -79,7 +79,6 @@ namespace VESCO
         {
             
             int trackIndex = GetTrackIndexFromY(yPosition);
-            Debug.WriteLine($"Clip dropped at X:{xPosition} Y:{yPosition} Track:{_timelineController.Timeline.VideoTracks[trackIndex].Name}");
             if (trackIndex < 0 || trackIndex >= _timelineController.Timeline.VideoTracks.Count)
                 return;
 
