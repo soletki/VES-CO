@@ -50,7 +50,7 @@ namespace VESCO.Timeline
             var secondClip = new VideoClip(
                 Name,
                 splitFrame,
-                (long)(TimelineStart + splitFrame * (timeline.Fps / Source.FPS)) + 1,
+                (long)(TimelineStart + splitFrame * (timeline.Fps / Source.FPS)),
                 new SourceMedia(Source.FilePath),
                 length: Length - splitFrame
             );

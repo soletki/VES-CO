@@ -75,6 +75,8 @@ namespace VESCO.Timeline
             {
                 result = new Mat(maxHeight, maxWidth, MatType.CV_8UC3, new Scalar(0, 0, 0));
 
+                frames.Reverse();
+
                 foreach (var frame in frames)
                 {
                     using (Mat frameMat = BitmapSourceConverter.ToMat(frame))

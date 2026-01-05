@@ -42,10 +42,10 @@ namespace VESCO
         public void AddTrack()
         {
             int trackIndex = _timelineController.Timeline.VideoTracks.Count;
-            string trackName = $"V{trackIndex+1}";
+            string trackName = $"V{trackIndex + 1}";
 
             var track = new VideoTrack(trackName, _timelineController.Timeline.Fps);
-            _timelineController.Timeline.VideoTracks.Add(track);
+            _timelineController.Timeline.VideoTracks.Insert(0, track);
 
             var labelBorder = new Border
             {
@@ -63,7 +63,7 @@ namespace VESCO
                 }
             };
 
-            _trackLabelsPanel.Children.Add(labelBorder);
+            _trackLabelsPanel.Children.Insert(0, labelBorder);
 
             UpdateTimelineHeight();
         }

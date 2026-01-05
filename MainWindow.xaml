@@ -146,6 +146,7 @@
 
                         <!-- Playhead -->
                         <Rectangle x:Name="Playhead"
+                                   Height="{Binding ActualHeight, ElementName=TimelineArea}"
                                    Width="3"
                                    Fill="Red"
                                    Panel.ZIndex="10"/>
