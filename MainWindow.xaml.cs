@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using VESCO.Timeline;
 
@@ -20,7 +21,7 @@ namespace VESCO
             InitializeComponent();
             DataContext = this;
 
-            _timelineController = new TimelineController(15, TimelineArea);
+            _timelineController = new TimelineController(20, TimelineArea);
             _playheadController = new PlayheadController(_timelineController, Playhead, previewImage);
             _clipManager = new ClipManager(_timelineController, TimelineArea, TrackLabelsPanel);
             _toolManager = new ToolManager(SelectTool, CutTool);
@@ -71,6 +72,18 @@ namespace VESCO
             _playheadController.StepForward();
         }
 
+        private void PlayPauseClick(object sender, RoutedEventArgs e)
+        {
+            _playheadController.TogglePlayback();
+
+            // Update button text based on playback state
+            var button = sender as Button;
+            if (button != null)
+            {
+                button.Content = _playheadController.IsPlaying ? "⏸" : "▶";
+            }
+        }
+
         private void OpenVideo_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
@@ -112,7 +125,7 @@ namespace VESCO
             {
                 _clipManager.HandleTimelineClickSelect(position);
             }
-            else if(_toolManager.ActiveTool == ToolType.Cut)
+            else if (_toolManager.ActiveTool == ToolType.Cut)
             {
                 _clipManager.HandleTimelineClickCut(position);
             }
@@ -160,11 +173,11 @@ namespace VESCO
 
         private void TimelineScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
         {
+            // Sync the vertical scroll of the labels with the timeline
             if (e.VerticalChange != 0)
             {
                 LabelsScrollViewer.ScrollToVerticalOffset(e.VerticalOffset);
             }
         }
-
     }
 }
