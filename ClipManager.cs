@@ -1,10 +1,8 @@
 ﻿using System.Diagnostics;
-using System.Drawing.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using VESCO.Timeline;
-using Xabe.FFmpeg;
 
 namespace VESCO
 {
@@ -37,6 +35,8 @@ namespace VESCO
             {
                 AddTrack();
             }
+
+            UpdateTimelineHeight();
         }
 
         public void AddTrack()
@@ -49,7 +49,7 @@ namespace VESCO
 
             var labelBorder = new Border
             {
-                Height = TrackHeight,
+                Height = TrackHeight + TrackSpacing,
                 Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
                 BorderBrush = Brushes.Black,
                 BorderThickness = new Thickness(0, 0, 0, 1),
@@ -66,18 +66,23 @@ namespace VESCO
             _trackLabelsPanel.Children.Insert(0, labelBorder);
 
             UpdateTimelineHeight();
+            UpdateClipPositions();
         }
 
         private void UpdateTimelineHeight()
         {
             int trackCount = _timelineController.Timeline.VideoTracks.Count;
             double totalHeight = trackCount * (TrackHeight + TrackSpacing) + TrackSpacing;
-            _timelineCanvas.Height = Math.Max(450, totalHeight);
+
+            // Add extra height to account for horizontal scrollbar
+            double extraHeight = 20; // Standard scrollbar height
+
+            _timelineCanvas.Height = totalHeight - extraHeight;
+            _trackLabelsPanel.Height = totalHeight;
         }
 
         public void AddClipAtPosition(SourceMedia source, double xPosition, double yPosition)
         {
-            
             int trackIndex = GetTrackIndexFromY(yPosition);
             if (trackIndex < 0 || trackIndex >= _timelineController.Timeline.VideoTracks.Count)
                 return;
@@ -96,7 +101,6 @@ namespace VESCO
 
         public void HandleTimelineClickSelect(Point position)
         {
-
             SelectClipAtPosition(position);
 
             if (_selectedClip != null)
@@ -142,7 +146,6 @@ namespace VESCO
             {
                 _isDragging = false;
                 _timelineCanvas.ReleaseMouseCapture();
-                
                 Debug.WriteLine($"Clip dropped: {_selectedClip?.Name}");
             }
         }
@@ -263,7 +266,7 @@ namespace VESCO
             var rect = new Border
             {
                 Width = Math.Max(4, clipWidth),
-                Height = TrackHeight - 10,
+                Height = TrackHeight - 2 * TrackSpacing,
                 Background = new SolidColorBrush(trackColors[trackIndex % trackColors.Length]),
                 BorderBrush = Brushes.Black,
                 BorderThickness = new Thickness(1),
@@ -277,7 +280,7 @@ namespace VESCO
             };
 
             Canvas.SetLeft(rect, clipX);
-            Canvas.SetTop(rect, GetTrackY(trackIndex) + 5);
+            Canvas.SetTop(rect, GetTrackY(trackIndex) + TrackSpacing);
 
             clip.rect = rect;
             _timelineCanvas.Children.Add(rect);
