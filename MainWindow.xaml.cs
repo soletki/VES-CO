@@ -1,7 +1,6 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using VESCO.Timeline;
 
@@ -21,13 +20,21 @@ namespace VESCO
             InitializeComponent();
             DataContext = this;
 
-            _timelineController = new TimelineController(20, TimelineArea);
-            _playheadController = new PlayheadController(_timelineController, Playhead, previewImage);
+            _timelineController = new TimelineController(60, TimelineArea);
+            _playheadController = new PlayheadController(
+                _timelineController,
+                PlayheadCanvas,
+                Playhead,
+                PlayheadTop,
+                previewImage,
+                TimecodeDisplay,
+                FrameCounter);
             _clipManager = new ClipManager(_timelineController, TimelineArea, TrackLabelsPanel);
             _toolManager = new ToolManager(SelectTool, CutTool);
 
             InitializeEventHandlers();
             _clipManager.InitializeTracks();
+            _playheadController.UpdateDisplays();
         }
 
         private void InitializeEventHandlers()
@@ -41,20 +48,27 @@ namespace VESCO
 
             switch (e.Key)
             {
-                case Key.OemPeriod:
+                case Key.Space:
+                    _playheadController.TogglePlayback();
+                    UpdatePlayPauseButton();
+                    e.Handled = true;
+                    break;
+                case Key.Right:
                     _playheadController.StepForward();
                     e.Handled = true;
                     break;
-                case Key.OemComma:
+                case Key.Left:
                     _playheadController.StepBackward();
                     e.Handled = true;
                     break;
                 case Key.OemPlus:
+                case Key.Add:
                     _timelineController.ZoomIn();
                     _playheadController.UpdatePlayheadPosition();
                     _clipManager.UpdateClipPositions();
                     break;
                 case Key.OemMinus:
+                case Key.Subtract:
                     _timelineController.ZoomOut();
                     _playheadController.UpdatePlayheadPosition();
                     _clipManager.UpdateClipPositions();
@@ -75,13 +89,12 @@ namespace VESCO
         private void PlayPauseClick(object sender, RoutedEventArgs e)
         {
             _playheadController.TogglePlayback();
+            UpdatePlayPauseButton();
+        }
 
-            // Update button text based on playback state
-            var button = sender as Button;
-            if (button != null)
-            {
-                button.Content = _playheadController.IsPlaying ? "⏸" : "▶";
-            }
+        private void UpdatePlayPauseButton()
+        {
+            PlayPause.Content = _playheadController.IsPlaying ? "⏸" : "▶";
         }
 
         private void OpenVideo_Click(object sender, RoutedEventArgs e)
@@ -173,7 +186,6 @@ namespace VESCO
 
         private void TimelineScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
         {
-            // Sync the vertical scroll of the labels with the timeline
             if (e.VerticalChange != 0)
             {
                 LabelsScrollViewer.ScrollToVerticalOffset(e.VerticalOffset);

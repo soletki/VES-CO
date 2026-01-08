@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -47,20 +48,47 @@ namespace VESCO
             var track = new VideoTrack(trackName, _timelineController.Timeline.Fps);
             _timelineController.Timeline.VideoTracks.Insert(0, track);
 
+            // Create track label with eye icon
+            var labelGrid = new Grid();
+            labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
+            labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var eyeButton = new Border
+            {
+                Width = 20,
+                Height = 20,
+                Background = Brushes.Transparent,
+                Child = new TextBlock
+                {
+                    Text = "👁",
+                    FontSize = 14,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                },
+                Cursor = System.Windows.Input.Cursors.Hand
+            };
+            Grid.SetColumn(eyeButton, 0);
+
+            var trackNameText = new TextBlock
+            {
+                Text = trackName,
+                Foreground = Brushes.White,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                FontWeight = FontWeights.Bold
+            };
+            Grid.SetColumn(trackNameText, 1);
+
+            labelGrid.Children.Add(eyeButton);
+            labelGrid.Children.Add(trackNameText);
+
             var labelBorder = new Border
             {
                 Height = TrackHeight + TrackSpacing,
                 Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
-                BorderBrush = Brushes.Black,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(63, 63, 70)),
                 BorderThickness = new Thickness(0, 0, 0, 1),
-                Child = new TextBlock
-                {
-                    Text = trackName,
-                    Foreground = Brushes.White,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    FontWeight = FontWeights.Bold
-                }
+                Child = labelGrid
             };
 
             _trackLabelsPanel.Children.Insert(0, labelBorder);
@@ -77,8 +105,16 @@ namespace VESCO
             // Add extra height to account for horizontal scrollbar
             double extraHeight = 20; // Standard scrollbar height
 
-            _timelineCanvas.Height = totalHeight - extraHeight;
+            _timelineCanvas.Height = totalHeight + extraHeight;
             _trackLabelsPanel.Height = totalHeight;
+
+            // Update playhead height to match canvas height
+            var playhead = _timelineCanvas.Children.OfType<System.Windows.Shapes.Rectangle>()
+                .FirstOrDefault(r => r.Name == "Playhead");
+            if (playhead != null)
+            {
+                playhead.Height = totalHeight + extraHeight;
+            }
         }
 
         public void AddClipAtPosition(SourceMedia source, double xPosition, double yPosition)

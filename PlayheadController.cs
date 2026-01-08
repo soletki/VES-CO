@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace VESCO
@@ -9,8 +10,12 @@ namespace VESCO
     public class PlayheadController
     {
         private readonly TimelineController _timelineController;
-        private readonly UIElement _playhead;
+        private readonly Canvas _playheadCanvas;
+        private readonly Rectangle _playhead;
+        private readonly Polygon _playheadTop;
         private readonly Image _previewImage;
+        private readonly TextBlock _timecodeDisplay;
+        private readonly TextBlock _frameCounter;
         private long _currentFrame;
         private bool _isDragging;
         private bool _isPlaying;
@@ -22,11 +27,17 @@ namespace VESCO
         public bool IsPlaying => _isPlaying;
         public long CurrentFrame => _currentFrame;
 
-        public PlayheadController(TimelineController timelineController, UIElement playhead, Image previewImage)
+        public PlayheadController(TimelineController timelineController, Canvas playheadCanvas,
+            Rectangle playhead, Polygon playheadTop, Image previewImage,
+            TextBlock timecodeDisplay, TextBlock frameCounter)
         {
             _timelineController = timelineController;
+            _playheadCanvas = playheadCanvas;
             _playhead = playhead;
+            _playheadTop = playheadTop;
             _previewImage = previewImage;
+            _timecodeDisplay = timecodeDisplay;
+            _frameCounter = frameCounter;
 
             InitializePlaybackTimer();
         }
@@ -45,13 +56,11 @@ namespace VESCO
         {
             if (!_isPlaying) return;
 
-            // Calculate elapsed frames based on actual time
             long elapsedMs = _playbackStopwatch.ElapsedMilliseconds;
             long targetFrame = _playbackStartFrame + (long)((elapsedMs / 1000.0) * _timelineController.Timeline.Fps);
 
             _currentFrame = targetFrame;
 
-            // Stop at the end
             long maxFrame = _timelineController.GetTotalFramesWithBuffer();
             if (_currentFrame >= maxFrame)
             {
@@ -61,6 +70,7 @@ namespace VESCO
 
             UpdatePlayheadPosition();
             UpdatePreview();
+            UpdateDisplays();
         }
 
         public void TogglePlayback()
@@ -104,6 +114,7 @@ namespace VESCO
             _currentFrame = 0;
             UpdatePlayheadPosition();
             UpdatePreview();
+            UpdateDisplays();
             Debug.WriteLine("Playback stopped");
         }
 
@@ -115,7 +126,7 @@ namespace VESCO
             _currentFrame = Math.Min(maxFrame, _currentFrame + 1);
             UpdatePlayheadPosition();
             UpdatePreview();
-            Debug.WriteLine($"Current frame: {_currentFrame}");
+            UpdateDisplays();
         }
 
         public void StepBackward()
@@ -125,13 +136,21 @@ namespace VESCO
             _currentFrame = Math.Max(0, _currentFrame - 1);
             UpdatePlayheadPosition();
             UpdatePreview();
-            Debug.WriteLine($"Current frame: {_currentFrame}");
+            UpdateDisplays();
         }
 
         public void UpdatePlayheadPosition()
         {
             double x = _timelineController.FrameToPosition(_currentFrame);
-            Canvas.SetLeft(_playhead, x);
+            Canvas.SetLeft(_playheadCanvas, x - 4);
+
+            // Update playhead height to match timeline
+            var timeline = _playheadCanvas.Parent as Canvas;
+            if (timeline != null)
+            {
+                _playhead.Height = timeline.ActualHeight;
+                Canvas.SetTop(_playhead, 10);
+            }
         }
 
         public void UpdatePreview()
@@ -139,19 +158,36 @@ namespace VESCO
             _previewImage.Source = _timelineController.Timeline.GetFrameAtFrame(_currentFrame);
         }
 
+        public void UpdateDisplays()
+        {
+            // Update timecode (HH:MM:SS:FF)
+            double fps = _timelineController.Timeline.Fps;
+            int frames = (int)(_currentFrame % fps);
+            int totalSeconds = (int)(_currentFrame / fps);
+            int seconds = totalSeconds % 60;
+            int minutes = (totalSeconds / 60) % 60;
+            int hours = totalSeconds / 3600;
+
+            _timecodeDisplay.Text = $"{hours:D2}:{minutes:D2}:{seconds:D2}:{frames:D2}";
+
+            // Update frame counter
+            long totalFrames = _timelineController.Timeline.GetTotalFrames();
+            _frameCounter.Text = $"{_currentFrame} / {totalFrames}";
+        }
+
         public void StartDragging(Point position)
         {
             if (_isPlaying) Pause();
 
             _isDragging = true;
-            _playhead.CaptureMouse();
+            _playheadCanvas.CaptureMouse();
             UpdateFromMouse(position);
         }
 
         public void EndDragging()
         {
             _isDragging = false;
-            _playhead.ReleaseMouseCapture();
+            _playheadCanvas.ReleaseMouseCapture();
         }
 
         public void UpdateFromMouse(Point position)
@@ -159,6 +195,7 @@ namespace VESCO
             _currentFrame = _timelineController.PositionToFrame(position.X);
             UpdatePlayheadPosition();
             UpdatePreview();
+            UpdateDisplays();
         }
     }
 }

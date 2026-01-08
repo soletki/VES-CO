@@ -16,14 +16,13 @@ namespace VESCO
 
         public ToolType ActiveTool => _activeTool;
 
-        public Button _selectToolButton { get; }
-        public Button _cutToolButton { get; }
+        public Border _selectTool { get; }
+        public Border _cutTool { get; }
 
-
-        public ToolManager(Button selectTool, Button cutTool)
+        public ToolManager(Border selectTool, Border cutTool)
         {
-            _selectToolButton = selectTool;
-            _cutToolButton = cutTool;
+            _selectTool = selectTool;
+            _cutTool = cutTool;
         }
 
         public void ToggleTool(ToolType tool)
@@ -42,14 +41,14 @@ namespace VESCO
 
         private void UpdateToolHighlights()
         {
-            _selectToolButton.BorderBrush = _activeTool == ToolType.Select ? Brushes.Blue : Brushes.Black;
-            _cutToolButton.BorderBrush = _activeTool == ToolType.Cut ? Brushes.Blue : Brushes.Black;
+            _selectTool.BorderBrush = _activeTool == ToolType.Select ? Brushes.Blue : Brushes.Black;
+            _cutTool.BorderBrush = _activeTool == ToolType.Cut ? Brushes.Blue : Brushes.Black;
         }
 
         private void ClearAllHighlights()
         {
-            _selectToolButton.BorderBrush = Brushes.Black;
-            _cutToolButton.BorderBrush = Brushes.Black;
+            _selectTool.BorderBrush = Brushes.Black;
+            _cutTool.BorderBrush = Brushes.Black;
         }
     }
 }
