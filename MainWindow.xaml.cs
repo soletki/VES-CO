@@ -30,7 +30,8 @@ namespace VESCO
                 PlayheadTop,
                 previewImage,
                 TimecodeDisplay,
-                FrameCounter);
+                FrameCounter,
+                TimelineScrollViewer);
             _clipManager = new ClipManager(_timelineController, TimelineArea, TrackLabelsPanel);
             _toolManager = new ToolManager(SelectTool, CutTool);
 
@@ -65,15 +66,29 @@ namespace VESCO
                     break;
                 case Key.OemPlus:
                 case Key.Add:
-                    _timelineController.ZoomIn();
-                    _playheadController.UpdatePlayheadPosition();
-                    _clipManager.UpdateClipPositions();
+                    if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+                    {
+                        _clipManager.IncreaseTrackHeight();
+                    }
+                    else
+                    {
+                        _timelineController.ZoomIn();
+                        _playheadController.UpdatePlayheadPosition();
+                        _clipManager.UpdateClipPositions();
+                    }
                     break;
                 case Key.OemMinus:
                 case Key.Subtract:
-                    _timelineController.ZoomOut();
-                    _playheadController.UpdatePlayheadPosition();
-                    _clipManager.UpdateClipPositions();
+                    if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+                    {
+                        _clipManager.DecreaseTrackHeight();
+                    }
+                    else
+                    {
+                        _timelineController.ZoomOut();
+                        _playheadController.UpdatePlayheadPosition();
+                        _clipManager.UpdateClipPositions();
+                    }
                     break;
             }
         }
@@ -135,6 +150,7 @@ namespace VESCO
         private void TimelineClick(object sender, MouseButtonEventArgs e)
         {
             var position = e.GetPosition(TimelineArea);
+            Debug.WriteLine($"Timeline clicked at: {position}");
 
             if (_toolManager.ActiveTool == ToolType.Select)
             {
@@ -147,6 +163,7 @@ namespace VESCO
             else
             {
                 _playheadController.StartDragging(position);
+                Mouse.Capture(TimelineArea);
             }
         }
 
@@ -169,6 +186,7 @@ namespace VESCO
         {
             _clipManager.EndDrag();
             _playheadController.EndDragging();
+            Mouse.Capture(null);
         }
 
         private void SelectToolClick(object sender, RoutedEventArgs e)
@@ -192,27 +210,10 @@ namespace VESCO
             {
                 LabelsScrollViewer.ScrollToVerticalOffset(e.VerticalOffset);
             }
-        }
-
-        private void RulerClick(object sender, MouseButtonEventArgs e)
-        {
-            var position = e.GetPosition(PlayheadRulerCanvas);
-            _playheadController.StartDragging(position);
-        }
-
-        private void RulerMove(object sender, MouseEventArgs e)
-        {
-            var position = e.GetPosition(PlayheadRulerCanvas);
-
-            if (_playheadController.IsDragging)
+            if(e.HorizontalOffset != 0)
             {
-                _playheadController.UpdateFromMouse(position);
+                _playheadController.UpdatePlayheadPosition();
             }
-        }
-
-        private void RulerRelease(object sender, MouseButtonEventArgs e)
-        {
-            _playheadController.EndDragging();
         }
 
         private void OnPreviewScaleChanged(object sender, SelectionChangedEventArgs e)
@@ -254,6 +255,13 @@ namespace VESCO
             _playheadController.UpdatePlayheadPosition();
             _playheadController.UpdatePreview();
             _playheadController.UpdateDisplays();
+        }
+
+        private void ExportVideoClick(object sender, RoutedEventArgs e)
+        {
+            var exportWindow = new ExportWindow(_timelineController.Timeline);
+            exportWindow.Owner = this;
+            exportWindow.ShowDialog();
         }
     }
 }

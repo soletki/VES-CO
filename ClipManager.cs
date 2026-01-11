@@ -17,7 +17,7 @@ namespace VESCO
         private bool _isDragging;
         private Point _dragStartMouse;
         private long _dragStartFrame;
-        private const int TrackHeight = 40;
+        private int TrackHeight = 40;
 
         public event Action<VideoClip> ClipSelected;
         public bool IsDragging => _isDragging;
@@ -27,6 +27,24 @@ namespace VESCO
             _timelineController = timelineController;
             _timelineCanvas = timelineCanvas;
             _trackLabelsPanel = trackLabelsPanel;
+        }
+
+        public void IncreaseTrackHeight()
+        {
+            TrackHeight += 10;
+
+            UpdateTimelineHeight();
+            UpdateClipPositions();
+            UpdateLabelsHeight();
+        }
+
+        public void DecreaseTrackHeight()
+        {
+            TrackHeight = Math.Max(10, TrackHeight-10);
+
+            UpdateTimelineHeight();
+            UpdateClipPositions();
+            UpdateLabelsHeight();
         }
 
         public void InitializeTracks()
@@ -347,6 +365,17 @@ namespace VESCO
             foreach (var element in toRemove)
             {
                 _timelineCanvas.Children.Remove(element);
+            }
+        }
+
+        private void UpdateLabelsHeight()
+        {
+            for (int i = 0; i < _trackLabelsPanel.Children.Count; i++)
+            {
+                if (_trackLabelsPanel.Children[i] is Border border)
+                {
+                    border.Height = TrackHeight;
+                }
             }
         }
     }

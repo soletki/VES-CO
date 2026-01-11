@@ -16,6 +16,7 @@ namespace VESCO
         private readonly Image _previewImage;
         private readonly TextBlock _timecodeDisplay;
         private readonly TextBlock _frameCounter;
+        private readonly ScrollViewer _timelineScrollViewer;
         private long _currentFrame;
         private bool _isDragging;
         private bool _isPlaying;
@@ -29,9 +30,10 @@ namespace VESCO
 
         public PlayheadController(TimelineController timelineController, Canvas playheadCanvas,
             Rectangle playhead, Polygon playheadTop, Image previewImage,
-            TextBlock timecodeDisplay, TextBlock frameCounter)
+            TextBlock timecodeDisplay, TextBlock frameCounter, ScrollViewer timelineScrollViewer)
         {
             _timelineController = timelineController;
+            _timelineScrollViewer = timelineScrollViewer;
             _playheadCanvas = playheadCanvas;
             _playhead = playhead;
             _playheadTop = playheadTop;
@@ -69,9 +71,30 @@ namespace VESCO
             }
 
             UpdatePlayheadPosition();
+            AutoScrollIfNeeded();
             UpdatePreview();
             UpdateDisplays();
         }
+
+        private void AutoScrollIfNeeded()
+        {
+            double playheadX = _timelineController.FrameToPosition(_currentFrame);
+
+            double left = _timelineScrollViewer.HorizontalOffset;
+            double right = left + _timelineScrollViewer.ViewportWidth;
+
+            if (playheadX < left)
+            {
+                _timelineScrollViewer.ScrollToHorizontalOffset(
+                    Math.Max(0, playheadX));
+            }
+            else if (playheadX > right)
+            {
+                _timelineScrollViewer.ScrollToHorizontalOffset(
+                    playheadX);
+            }
+        }
+
 
         public void UpdateCurrentFrame(long frame)
         {
@@ -146,8 +169,10 @@ namespace VESCO
 
         public void UpdatePlayheadPosition()
         {
-            double x = _timelineController.FrameToPosition(_currentFrame);
-            Canvas.SetLeft(_playheadCanvas, x - 4);
+            double x = _timelineController.FrameToPosition(_currentFrame) - _timelineScrollViewer.HorizontalOffset;
+            if (x <= -10) _playheadCanvas.Visibility = System.Windows.Visibility.Hidden;
+            else _playheadCanvas.Visibility = System.Windows.Visibility.Visible;
+                Canvas.SetLeft(_playheadCanvas, x);
         }
 
         public void UpdatePreview()
@@ -177,14 +202,12 @@ namespace VESCO
             if (_isPlaying) Pause();
 
             _isDragging = true;
-            _playheadCanvas.CaptureMouse();
             UpdateFromMouse(position);
         }
 
         public void EndDragging()
         {
             _isDragging = false;
-            _playheadCanvas.ReleaseMouseCapture();
         }
 
         public void UpdateFromMouse(Point position)
