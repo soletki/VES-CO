@@ -148,9 +148,11 @@ namespace VESCO
         {
             // Set full quality for rendering
             double originalScale = timeline.PreviewScale;
-            timeline.PreviewScale = 1.0;
+            timeline.PreviewScale = (double)(52-quality)/51;
 
             long totalFrames = timeline.GetTotalFrames();
+
+            long totalOutputFrames = (long)(totalFrames * (fps / timeline.Fps));
 
             await Task.Run(() =>
             {
@@ -169,9 +171,11 @@ namespace VESCO
                         throw new Exception("Failed to open video writer. Make sure the codec is supported.");
                     }
 
-                    for (long frame = 0; frame < totalFrames; frame++)
+                    for (long frame = 0; frame < totalOutputFrames; frame++)
                     {
-                        var bitmapSource = timeline.GetFrameAtFrame(frame);
+
+                        long outFrameIndex = (long)(frame * (timeline.Fps / fps));
+                        var bitmapSource = timeline.GetFrameAtFrame(outFrameIndex);
 
                         if (bitmapSource != null)
                         {
@@ -206,7 +210,7 @@ namespace VESCO
                             }
                         }
 
-                        OnProgress?.Invoke((frame + 1.0) / totalFrames * 100.0);
+                        OnProgress?.Invoke((frame + 1.0) / totalOutputFrames * 100.0);
                     }
 
                     writer.Release();

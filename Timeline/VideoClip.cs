@@ -15,24 +15,32 @@ namespace VESCO.Timeline
             _capture = new VideoCapture(source.FilePath);
         }
 
-        public BitmapSource GetFrameAtTimelineFrame(long timelineFrame, double fps)
+        private long _lastFrame = -1;
+
+        public BitmapSource GetFrameAtTimelineFrame(long timelineFrame, double fps, double scale)
         {
             double fpsRatio = Source.FPS / fps;
-
-            long localFrame =
-                SourceStart +
+            long localFrame = SourceStart +
                 (long)Math.Round((timelineFrame - TimelineStart) * fpsRatio);
 
             localFrame = Math.Clamp(localFrame, 0, Source.FrameCount - 1);
 
-            _capture.Set(VideoCaptureProperties.PosFrames, localFrame);
+            if (_lastFrame != localFrame - 1)
+            {
+                _capture.Set(VideoCaptureProperties.PosFrames, localFrame);
+            }
 
             using var mat = new Mat();
             if (!_capture.Read(mat) || mat.Empty())
                 return null;
 
+            _lastFrame = localFrame;
+
+            Cv2.Resize(mat, mat, new OpenCvSharp.Size(mat.Width * scale, mat.Height * scale), 0, 0, InterpolationFlags.Area);
+
             return mat.ToBitmapSource();
         }
+
 
         public (VideoClip first, VideoClip second) SplitAtFrame(long splitFrame, Timeline timeline)
         {

@@ -47,6 +47,17 @@ namespace VESCO
             UpdateLabelsHeight();
         }
 
+        public void DeleteSelectedClip()
+        {
+            if (_selectedClip != null && _selectedTrackIndex >= 0)
+            {
+                _timelineController.Timeline.VideoTracks[_selectedTrackIndex].RemoveClip(_selectedClip);
+                _selectedClip = null;
+                _selectedTrackIndex = -1;
+                UpdateClipPositions();
+            }
+        }
+
         public void InitializeTracks()
         {
             for (int i = 0; i < 2; i++)

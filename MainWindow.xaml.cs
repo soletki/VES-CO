@@ -76,6 +76,7 @@ namespace VESCO
                         _playheadController.UpdatePlayheadPosition();
                         _clipManager.UpdateClipPositions();
                     }
+                    e.Handled = true;
                     break;
                 case Key.OemMinus:
                 case Key.Subtract:
@@ -89,6 +90,12 @@ namespace VESCO
                         _playheadController.UpdatePlayheadPosition();
                         _clipManager.UpdateClipPositions();
                     }
+                    e.Handled = true;
+                    break;
+                case Key.Delete:
+                    _clipManager.DeleteSelectedClip();
+                    _playheadController.UpdatePreview();
+                    e.Handled = true;
                     break;
             }
         }

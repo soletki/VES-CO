@@ -34,7 +34,7 @@ namespace VESCO.Timeline
 
         public void RemoveClip(VideoClip clip) => Clips.Remove(clip);
 
-        public BitmapSource GetFrameAt(long timelineFrame)
+        public BitmapSource GetFrameAt(long timelineFrame, double scale)
         {
             foreach (var clip in Clips)
             {
@@ -42,7 +42,7 @@ namespace VESCO.Timeline
 
                 if (timelineFrame >= clip.TimelineStart && timelineFrame < clipEndFrame)
                 {
-                    return clip.GetFrameAtTimelineFrame(timelineFrame, Fps);
+                    return clip.GetFrameAtTimelineFrame(timelineFrame, Fps, scale);
                 }
             }
 

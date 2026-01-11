@@ -44,7 +44,7 @@ namespace VESCO.Timeline
 
             foreach (var track in VideoTracks)
             {
-                var trackFrame = track.GetFrameAt(frame);
+                var trackFrame = track.GetFrameAt(frame, PreviewScale);
                 if (trackFrame != null)
                 {
                     frames.Add(trackFrame);
@@ -53,9 +53,6 @@ namespace VESCO.Timeline
 
             if (frames.Count == 0)
                 return null;
-
-            if (frames.Count == 1)
-                return ScaleFrame(frames[0]);
 
             return CompositeImages(frames);
         }
@@ -69,7 +66,6 @@ namespace VESCO.Timeline
             int maxHeight = frames.Max(f => f.PixelHeight);
 
             Mat result = null;
-            Mat scaledResult = null;
 
             try
             {
@@ -112,48 +108,15 @@ namespace VESCO.Timeline
                     }
                 }
 
-                if (PreviewScale < 1.0)
-                {
-                    scaledResult = new Mat();
-                    int scaledWidth = (int)(maxWidth * PreviewScale);
-                    int scaledHeight = (int)(maxHeight * PreviewScale);
-                    Cv2.Resize(result, scaledResult, new OpenCvSharp.Size(scaledWidth, scaledHeight), 0, 0, InterpolationFlags.Area);
-
-                    BitmapSource output = BitmapSourceConverter.ToBitmapSource(scaledResult);
-                    output.Freeze();
-                    return output;
-                }
-                else
-                {
-                    BitmapSource output = BitmapSourceConverter.ToBitmapSource(result);
-                    output.Freeze();
-                    return output;
-                }
+                
+                   BitmapSource output = BitmapSourceConverter.ToBitmapSource(result);
+                   output.Freeze();
+                   return output;
+                
             }
             finally
             {
                 result?.Dispose();
-                scaledResult?.Dispose();
-            }
-        }
-
-        private BitmapSource ScaleFrame(BitmapSource frame)
-        {
-            if (PreviewScale >= 1.0)
-                return frame;
-
-            using (Mat frameMat = BitmapSourceConverter.ToMat(frame))
-            {
-                int newWidth = (int)(frameMat.Width * PreviewScale);
-                int newHeight = (int)(frameMat.Height * PreviewScale);
-
-                using (Mat scaled = new Mat())
-                {
-                    Cv2.Resize(frameMat, scaled, new OpenCvSharp.Size(newWidth, newHeight), 0, 0, InterpolationFlags.Area);
-                    BitmapSource output = BitmapSourceConverter.ToBitmapSource(scaled);
-                    output.Freeze();
-                    return output;
-                }
             }
         }
     }
