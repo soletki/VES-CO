@@ -17,8 +17,7 @@ namespace VESCO
         private bool _isDragging;
         private Point _dragStartMouse;
         private long _dragStartFrame;
-        private const int TrackHeight = 70;
-        private const int TrackSpacing = 5;
+        private const int TrackHeight = 40;
 
         public event Action<VideoClip> ClipSelected;
         public bool IsDragging => _isDragging;
@@ -32,7 +31,7 @@ namespace VESCO
 
         public void InitializeTracks()
         {
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 2; i++)
             {
                 AddTrack();
             }
@@ -84,7 +83,7 @@ namespace VESCO
 
             var labelBorder = new Border
             {
-                Height = TrackHeight + TrackSpacing,
+                Height = TrackHeight,
                 Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(63, 63, 70)),
                 BorderThickness = new Thickness(0, 0, 0, 1),
@@ -100,12 +99,11 @@ namespace VESCO
         private void UpdateTimelineHeight()
         {
             int trackCount = _timelineController.Timeline.VideoTracks.Count;
-            double totalHeight = trackCount * (TrackHeight + TrackSpacing) + TrackSpacing;
+            double totalHeight = trackCount * (TrackHeight);
 
-            // Add extra height to account for horizontal scrollbar
-            double extraHeight = 20; // Standard scrollbar height
+            double extraHeight = 20;
 
-            _timelineCanvas.Height = totalHeight + extraHeight;
+            _timelineCanvas.Height = totalHeight;
             _trackLabelsPanel.Height = totalHeight;
 
             // Update playhead height to match canvas height
@@ -277,12 +275,12 @@ namespace VESCO
 
         private int GetTrackIndexFromY(double y)
         {
-            return (int)(y / (TrackHeight + TrackSpacing));
+            return (int)(y / (TrackHeight));
         }
 
         private double GetTrackY(int trackIndex)
         {
-            return trackIndex * (TrackHeight + TrackSpacing) + TrackSpacing;
+            return trackIndex * (TrackHeight);
         }
 
         private void DrawClip(VideoClip clip, int trackIndex)
@@ -302,7 +300,7 @@ namespace VESCO
             var rect = new Border
             {
                 Width = Math.Max(4, clipWidth),
-                Height = TrackHeight - 2 * TrackSpacing,
+                Height = TrackHeight,
                 Background = new SolidColorBrush(trackColors[trackIndex % trackColors.Length]),
                 BorderBrush = Brushes.Black,
                 BorderThickness = new Thickness(1),
@@ -316,7 +314,7 @@ namespace VESCO
             };
 
             Canvas.SetLeft(rect, clipX);
-            Canvas.SetTop(rect, GetTrackY(trackIndex) + TrackSpacing);
+            Canvas.SetTop(rect, GetTrackY(trackIndex));
 
             clip.rect = rect;
             _timelineCanvas.Children.Add(rect);

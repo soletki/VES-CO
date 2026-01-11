@@ -73,6 +73,11 @@ namespace VESCO
             UpdateDisplays();
         }
 
+        public void UpdateCurrentFrame(long frame)
+        {
+            _currentFrame = frame;
+        }
+
         public void TogglePlayback()
         {
             if (_isPlaying)
@@ -143,14 +148,6 @@ namespace VESCO
         {
             double x = _timelineController.FrameToPosition(_currentFrame);
             Canvas.SetLeft(_playheadCanvas, x - 4);
-
-            // Update playhead height to match timeline
-            var timeline = _playheadCanvas.Parent as Canvas;
-            if (timeline != null)
-            {
-                _playhead.Height = timeline.ActualHeight;
-                Canvas.SetTop(_playhead, 10);
-            }
         }
 
         public void UpdatePreview()

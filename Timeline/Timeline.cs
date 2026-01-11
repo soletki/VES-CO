@@ -9,7 +9,7 @@ namespace VESCO.Timeline
         public double Fps { get; set; }
         public List<VideoTrack> VideoTracks { get; set; } = new();
 
-        public double PreviewScale { get; set; } = 0.25;
+        public double PreviewScale { get; set; } = 0.5;
 
         public Timeline(double fps)
         {

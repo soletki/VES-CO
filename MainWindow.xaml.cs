@@ -1,6 +1,8 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using VESCO.Timeline;
 
@@ -53,11 +55,11 @@ namespace VESCO
                     UpdatePlayPauseButton();
                     e.Handled = true;
                     break;
-                case Key.Right:
+                case Key.OemPeriod:
                     _playheadController.StepForward();
                     e.Handled = true;
                     break;
-                case Key.Left:
+                case Key.OemComma:
                     _playheadController.StepBackward();
                     e.Handled = true;
                     break;
@@ -190,6 +192,68 @@ namespace VESCO
             {
                 LabelsScrollViewer.ScrollToVerticalOffset(e.VerticalOffset);
             }
+        }
+
+        private void RulerClick(object sender, MouseButtonEventArgs e)
+        {
+            var position = e.GetPosition(PlayheadRulerCanvas);
+            _playheadController.StartDragging(position);
+        }
+
+        private void RulerMove(object sender, MouseEventArgs e)
+        {
+            var position = e.GetPosition(PlayheadRulerCanvas);
+
+            if (_playheadController.IsDragging)
+            {
+                _playheadController.UpdateFromMouse(position);
+            }
+        }
+
+        private void RulerRelease(object sender, MouseButtonEventArgs e)
+        {
+            _playheadController.EndDragging();
+        }
+
+        private void OnPreviewScaleChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if(_timelineController == null)
+                return;
+            switch (PreviewScaleDropdown.SelectedIndex)
+            {
+                case 0:
+                    _timelineController.Timeline.PreviewScale = 1;
+                    break;
+                case 1:
+                    _timelineController.Timeline.PreviewScale = 0.5;
+                    break;
+                case 2:
+                    _timelineController.Timeline.PreviewScale = 0.25;
+                    break;
+                case 3:
+                    _timelineController.Timeline.PreviewScale = 0.125;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private void SeekStartClick(object sender, RoutedEventArgs e)
+        {
+            _playheadController.Pause();
+            _playheadController.UpdateCurrentFrame(0);
+            _playheadController.UpdatePlayheadPosition();
+            _playheadController.UpdatePreview();
+            _playheadController.UpdateDisplays();
+        }
+
+        private void SeekEndClick(object sender, RoutedEventArgs e)
+        {
+            _playheadController.Pause();
+            _playheadController.UpdateCurrentFrame(_timelineController.Timeline.GetTotalFrames()-1);
+            _playheadController.UpdatePlayheadPosition();
+            _playheadController.UpdatePreview();
+            _playheadController.UpdateDisplays();
         }
     }
 }
