@@ -1,5 +1,6 @@
 ﻿using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
@@ -8,14 +9,18 @@ namespace VESCO.Timeline
     public class VideoClip : Clip
     {
         private VideoCapture _capture;
+        private long _lastFrame = -1;
+
+        public int x = 0;
+        public int y = 0;
+        public double scale = 1.0;
+        public double opacity = 1.0;
 
         public VideoClip(string name, long sourceStartFrame, long timelineStartFrame, SourceMedia source, long ?length = null)
             : base(name, sourceStartFrame, timelineStartFrame, source, length)
         {
             _capture = new VideoCapture(source.FilePath);
         }
-
-        private long _lastFrame = -1;
 
         public BitmapSource GetFrameAtTimelineFrame(long timelineFrame, double fps, double scale)
         {

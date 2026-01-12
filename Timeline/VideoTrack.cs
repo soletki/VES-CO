@@ -48,5 +48,18 @@ namespace VESCO.Timeline
 
             return null;
         }
+
+        public VideoClip getClipAt(long timelineFrame)
+        {
+            foreach (var clip in Clips)
+            {
+                long clipEndFrame = clip.TimelineStart + (long)(clip.Length * (Fps / clip.Source.FPS));
+                if (timelineFrame >= clip.TimelineStart && timelineFrame < clipEndFrame)
+                {
+                    return clip;
+                }
+            }
+            return null;
+        }
     }
 }

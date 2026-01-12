@@ -40,14 +40,16 @@ namespace VESCO.Timeline
 
         private BitmapSource CompositeFrames(long frame)
         {
-            List<BitmapSource> frames = new List<BitmapSource>();
+            List<FrameWrapper> frames = new List<FrameWrapper>();
 
             foreach (var track in VideoTracks)
             {
-                var trackFrame = track.GetFrameAt(frame, PreviewScale);
-                if (trackFrame != null)
+                BitmapSource trackFrame = track.GetFrameAt(frame, PreviewScale);
+                VideoClip clip = track.getClipAt(frame);
+
+                if (trackFrame != null && clip!=null)
                 {
-                    frames.Add(trackFrame);
+                    frames.Add(new FrameWrapper(trackFrame, clip.opacity, clip.x, clip.y, clip.scale));
                 }
             }
 
@@ -57,13 +59,13 @@ namespace VESCO.Timeline
             return CompositeImages(frames);
         }
 
-        private BitmapSource CompositeImages(List<BitmapSource> frames)
+        private BitmapSource CompositeImages(List<FrameWrapper> frames)
         {
             if (frames.Count == 0)
                 return null;
 
-            int maxWidth = frames.Max(f => f.PixelWidth);
-            int maxHeight = frames.Max(f => f.PixelHeight);
+            int maxWidth = frames.Max(f => f.frame.PixelWidth);
+            int maxHeight = frames.Max(f => f.frame.PixelHeight);
 
             Mat result = null;
 
@@ -75,7 +77,7 @@ namespace VESCO.Timeline
 
                 foreach (var frame in frames)
                 {
-                    using (Mat frameMat = BitmapSourceConverter.ToMat(frame))
+                    using (Mat frameMat = BitmapSourceConverter.ToMat(frame.frame))
                     {
                         Mat frameToLayer = frameMat;
                         if (frameMat.Channels() == 1)
@@ -89,30 +91,61 @@ namespace VESCO.Timeline
                             Cv2.CvtColor(frameMat, frameToLayer, ColorConversionCodes.BGRA2BGR);
                         }
 
-                        int x = 0;
-                        int y = 0;
+                        int dstX = frame.x;
+                        int dstY = frame.y;
 
-                        // Ensure coordinates are within bounds
-                        x = Math.Max(0, x);
-                        y = Math.Max(0, y);
+                        int srcX = 0;
+                        int srcY = 0;
 
-                        // Copy the frame to the result at its original size
-                        OpenCvSharp.Rect roi = new OpenCvSharp.Rect(x, y, frameToLayer.Width, frameToLayer.Height);
-                        Mat resultROI = new Mat(result, roi);
-                        frameToLayer.CopyTo(resultROI);
+                        int width = frameToLayer.Width;
+                        int height = frameToLayer.Height;
+
+                        // Clip left/top
+                        if (dstX < 0)
+                        {
+                            srcX = -dstX;
+                            width += dstX;
+                            dstX = 0;
+                        }
+                        if (dstY < 0)
+                        {
+                            srcY = -dstY;
+                            height += dstY;
+                            dstY = 0;
+                        }
+
+                        // Clip right/bottom
+                        if (dstX + width > result.Width)
+                            width = result.Width - dstX;
+
+                        if (dstY + height > result.Height)
+                            height = result.Height - dstY;
+
+                        // Completely outside
+                        if (width <= 0 || height <= 0)
+                        {
+                            if (frameToLayer != frameMat)
+                                frameToLayer.Dispose();
+                            continue;
+                        }
+
+                        Rect srcRect = new Rect(srcX, srcY, width, height);
+                        Rect dstRect = new Rect(dstX, dstY, width, height);
+
+                        using (Mat srcROI = new Mat(frameToLayer, srcRect))
+                        using (Mat dstROI = new Mat(result, dstRect))
+                        {
+                            srcROI.CopyTo(dstROI);
+                        }
 
                         if (frameToLayer != frameMat)
-                        {
                             frameToLayer.Dispose();
-                        }
                     }
                 }
 
-                
-                   BitmapSource output = BitmapSourceConverter.ToBitmapSource(result);
-                   output.Freeze();
-                   return output;
-                
+                BitmapSource output = BitmapSourceConverter.ToBitmapSource(result);
+                output.Freeze();
+                return output;
             }
             finally
             {
