@@ -22,14 +22,14 @@ namespace VESCO.Timeline
             long sourceStart,
             long timelineStart,
             SourceMedia source,
-            long? length = null)
+            long length = -1)
         {
             Name = name;
             SourceStart = sourceStart;
             TimelineStart = timelineStart;
             Source = source;
 
-            Length = length ?? (source.FrameCount - SourceStart);
+            Length = (length==-1) ? (source.FrameCount - SourceStart) : length;
 
             //Debug.WriteLine($"New clip with Length: {Length} Starting at frame: {TimelineStart}");
         }

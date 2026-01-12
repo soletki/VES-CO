@@ -91,6 +91,15 @@ namespace VESCO.Timeline
                             Cv2.CvtColor(frameMat, frameToLayer, ColorConversionCodes.BGRA2BGR);
                         }
 
+                        if(frame.scale!=1.0)
+                        {
+                            Mat resized = new Mat();
+                            Cv2.Resize(frameToLayer, resized, new Size(frameToLayer.Width * frame.scale, frameToLayer.Height * frame.scale), 0, 0, InterpolationFlags.Area);
+                            if (frameToLayer != frameMat)
+                                frameToLayer.Dispose();
+                            frameToLayer = resized;
+                        }
+
                         int dstX = frame.x;
                         int dstY = frame.y;
 
@@ -135,7 +144,11 @@ namespace VESCO.Timeline
                         using (Mat srcROI = new Mat(frameToLayer, srcRect))
                         using (Mat dstROI = new Mat(result, dstRect))
                         {
-                            srcROI.CopyTo(dstROI);
+                            double alpha = Math.Clamp(frame.opacity, 0.0, 1.0);
+                            if(alpha>=0.999)
+                                srcROI.CopyTo(dstROI);
+                            else if (alpha > 0.001)
+                                Cv2.AddWeighted(srcROI, alpha, dstROI, 1.0 - alpha, 0.0, dstROI);
                         }
 
                         if (frameToLayer != frameMat)

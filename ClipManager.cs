@@ -229,7 +229,7 @@ namespace VESCO
             HighlightSelectedClip();
         }
 
-        private void SelectClipAtPosition(Point position)
+        public void SelectClipAtPosition(Point position)
         {
             int trackIndex = GetTrackIndexFromY(position.Y);
             if (trackIndex < 0 || trackIndex >= _timelineController.Timeline.VideoTracks.Count)
@@ -387,6 +387,38 @@ namespace VESCO
                 {
                     border.Height = TrackHeight;
                 }
+            }
+        }
+
+        public void UpdateSelectedClipX(int x)
+        {
+            if (_selectedClip != null)
+            {
+                _selectedClip.x = x;
+            }
+        }
+
+        public void UpdateSelectedClipY(int y)
+        {
+            if (_selectedClip != null)
+            {
+                _selectedClip.y = y;
+            }
+        }
+
+        public void UpdateSelectedClipScale(double scale)
+        {
+            if (_selectedClip != null)
+            {
+                _selectedClip.scale = scale;
+            }
+        }
+
+        public void UpdateSelectedClipOpacity(double opacity)
+        {
+            if (_selectedClip != null)
+            {
+                _selectedClip.opacity = opacity;
             }
         }
     }

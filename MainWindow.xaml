@@ -73,8 +73,8 @@
                                     </Grid.ColumnDefinitions>
                                     <Slider Grid.Column="0" Minimum="-1000" Maximum="1000" Value="0" 
                                             VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <TextBox Grid.Column="1" Text="0.0" Background="#3F3F46" 
-                                             Foreground="White" BorderBrush="#555" Padding="5"/>
+                                    <TextBox Name="XTextBox"  Grid.Column="1" Text="0.0" Background="#3F3F46" 
+                                             Foreground="White" BorderBrush="#555" Padding="5" KeyDown="XTextBoxKeyDown"/>
                                 </Grid>
 
                                 <TextBlock Text="Y" Foreground="White" FontWeight="Bold" Margin="0,10,0,5"/>
@@ -85,8 +85,8 @@
                                     </Grid.ColumnDefinitions>
                                     <Slider Grid.Column="0" Minimum="-1000" Maximum="1000" Value="0" 
                                         VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <TextBox Grid.Column="1" Text="0.0" Background="#3F3F46" 
-                                        Foreground="White" BorderBrush="#555" Padding="5"/>
+                                    <TextBox Name="YTextBox" Grid.Column="1" Text="0.0" Background="#3F3F46" 
+                                        Foreground="White" BorderBrush="#555" Padding="5" KeyDown="YTextBoxKeyDown"/>
                                 </Grid>
 
                                 <!-- Scale -->
@@ -98,8 +98,8 @@
                                     </Grid.ColumnDefinitions>
                                     <Slider Grid.Column="0" Minimum="0" Maximum="200" Value="100" 
                                             VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <TextBox Grid.Column="1" Text="100.0" Background="#3F3F46" 
-                                             Foreground="White" BorderBrush="#555" Padding="5"/>
+                                    <TextBox Name="ScaleTextBox" Grid.Column="1" Text="100.0" Background="#3F3F46" 
+                                             Foreground="White" BorderBrush="#555" Padding="5" KeyDown="ScaleTextBoxKeyDown"/>
                                 </Grid>
 
                                 <!-- Opacity -->
@@ -111,8 +111,8 @@
                                     </Grid.ColumnDefinitions>
                                     <Slider Grid.Column="0" Minimum="0" Maximum="100" Value="100" 
                                             VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <TextBox Grid.Column="1" Text="100.0" Background="#3F3F46" 
-                                             Foreground="White" BorderBrush="#555" Padding="5"/>
+                                    <TextBox Name="OpacityTextBox" Grid.Column="1" Text="100.0" Background="#3F3F46" 
+                                             Foreground="White" BorderBrush="#555" Padding="5" KeyDown="OpacityTextBoxKeyDown"/>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
@@ -142,7 +142,7 @@
                             </DockPanel>
                         </Border>
 
-                        <Border Grid.Row="1" Background="Black" BorderBrush="Black" BorderThickness="2">
+                        <Border Grid.Row="1" Background="#111">
                             <Image x:Name="previewImage" Stretch="Uniform"/>
                         </Border>
 

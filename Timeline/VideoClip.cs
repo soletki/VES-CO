@@ -16,10 +16,14 @@ namespace VESCO.Timeline
         public double scale = 1.0;
         public double opacity = 1.0;
 
-        public VideoClip(string name, long sourceStartFrame, long timelineStartFrame, SourceMedia source, long ?length = null)
+        public VideoClip(string name, long sourceStartFrame, long timelineStartFrame, SourceMedia source, long length = -1, int x = 0, int y = 0, double scale = 1.0, double opacity = 1.0)
             : base(name, sourceStartFrame, timelineStartFrame, source, length)
         {
             _capture = new VideoCapture(source.FilePath);
+            this.x = x;
+            this.y = y;
+            this.scale = scale;
+            this.opacity = opacity;
         }
 
         public BitmapSource GetFrameAtTimelineFrame(long timelineFrame, double fps, double scale)
@@ -57,7 +61,11 @@ namespace VESCO.Timeline
                 SourceStart,
                 TimelineStart,
                 new SourceMedia(Source.FilePath),
-                length: splitFrame
+                length: splitFrame,
+                x,
+                y,
+                scale,
+                opacity
             );
 
             var secondClip = new VideoClip(
@@ -65,7 +73,11 @@ namespace VESCO.Timeline
                 splitFrame,
                 (long)(TimelineStart + splitFrame * (timeline.Fps / Source.FPS)),
                 new SourceMedia(Source.FilePath),
-                length: Length - splitFrame
+                length: Length - splitFrame,
+                x,
+                y,
+                scale,
+                opacity
             );
 
             return (firstClip, secondClip);
