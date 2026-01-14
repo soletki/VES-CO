@@ -20,7 +20,6 @@ namespace VESCO.Timeline
         public SourceMedia source { get; set; }
         public long sourceStart { get; set; }
         public long length { get; set; }
-        public Border rect { get; set; }
 
         public VideoClip(string filePath, long sourceStart, long timelineStart, SourceMedia source, long length = -1, int x = 0, int y = 0, double scale = 1.0, double opacity = 1.0)
             : base(filePath, timelineStart)

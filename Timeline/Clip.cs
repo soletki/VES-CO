@@ -3,18 +3,11 @@ using System.Windows.Controls;
 
 namespace VESCO.Timeline
 {
-    public abstract class Clip
+    public abstract class Clip(string filePath, long timelineStart)
     {
-        public string name { get; set; }
-        public string filePath { get; set; }
-        public long timelineStart { get; set; }
+        public string name { get; set; } = Path.GetFileName(filePath);
+        public string filePath { get; set; } = filePath;
+        public long timelineStart { get; set; } = timelineStart;
         public Border rect { get; set; }
-
-        protected Clip(string filePath, long timelineStart)
-        {
-            this.filePath = filePath;
-            this.timelineStart = timelineStart;
-            name = Path.GetFileName(filePath);
-        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using OpenCvSharp;
+﻿using NAudio.Wave;
+using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
 using System.Diagnostics;
 using System.IO;
@@ -59,7 +60,7 @@ namespace VESCO
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // Step 2: Use FFmpeg to encode frames into video
-                await EncodeWithFFmpeg(tempDir, outputPath, fps, codec, quality, pixelFormat, width, height, cancellationToken);
+                await EncodeWithFFmpeg(tempDir, outputPath, fps, codec, quality, pixelFormat, width, height, cancellationToken, timeline);
             }
             finally
             {
@@ -84,10 +85,14 @@ namespace VESCO
             string pixelFormat,
             int width,
             int height,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Timeline.Timeline timeline)
         {
             string inputPattern = Path.Combine(framesDir, "frame_%06d.png");
             string scale = $"-vf scale={width}:{height}";
+
+            string audioPath = Path.Combine(Path.GetTempPath(), $"audio_{Guid.NewGuid()}.wav");
+            ExportAudio(timeline, audioPath, fps, cancellationToken);
 
             var startInfo = new ProcessStartInfo
             {
@@ -95,6 +100,8 @@ namespace VESCO
                 Arguments = $"-framerate {fps} -i \"{inputPattern}\" " +
                            $"{scale} " +
                            $"-c:v {codec} " +
+                           $"-c:a aac " +
+                           $"-b:a 192k " +
                            $"-pix_fmt {pixelFormat} " +
                            $"-crf {quality} " +
                            $"-y \"{outputPath}\"",
@@ -113,7 +120,7 @@ namespace VESCO
                 {
                     // Parse frame number from FFmpeg output
                     // Example: "frame= 120 fps=30 q=28.0 size= 256kB time=00:00:04.00"
-                    var parts = args.Data.Split(new[] { "frame=" }, StringSplitOptions.None);
+                    var parts = args.Data.Split(["frame="], StringSplitOptions.None);
                     if (parts.Length > 1)
                     {
                         var framePart = parts[1].Split(' ')[0].Trim();
@@ -173,6 +180,33 @@ namespace VESCO
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
             encoder.Save(fileStream);
+        }
+
+        private static void ExportAudio(Timeline.Timeline timeline, string outputPath, double fps, CancellationToken ct)
+        {
+            long totalFrames = timeline.GetTotalFrames();
+            int sampleRate = 48000;
+            int channels = 2;
+
+            using var writer = new WaveFileWriter(outputPath, new WaveFormat(sampleRate, channels));
+
+            for (long frame = 0; frame < totalFrames; frame++)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                var audioSamples = timeline.GetAudioAtFrame(frame, sampleRate, channels);
+
+                if (audioSamples != null)
+                {
+                    writer.WriteSamples(audioSamples, 0, audioSamples.Length);
+                }
+                else
+                {
+                    // Write silence
+                    int samplesPerFrame = (int)(sampleRate / fps * channels);
+                    writer.WriteSamples(new float[samplesPerFrame], 0, samplesPerFrame);
+                }
+            }
         }
 
         public async Task RenderVideoOpenCV(

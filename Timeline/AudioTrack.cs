@@ -37,7 +37,7 @@ namespace VESCO.Timeline
                 {
                     // Get audio samples for this frame
                     double frameTime = frame / fps;
-                    double sourceTime = frameTime - (clip.timelineStart / fps) + clip.SourceStartTime;
+                    double sourceTime = frameTime - (clip.timelineStart / fps) + clip.SourceStart;
 
                     using var reader = new AudioFileReader(clip.Source.FilePath);
                     reader.CurrentTime = TimeSpan.FromSeconds(sourceTime);

@@ -154,7 +154,7 @@ namespace VESCO
                 var source = (SourceMedia)e.Data.GetData(typeof(SourceMedia));
                 var dropPosition = e.GetPosition(TimelineArea);
 
-                _clipManager.AddClipAtPosition(source, dropPosition.X, dropPosition.Y);
+                _clipManager.AddVideoClipAtPosition(source, dropPosition.X, dropPosition.Y);
                 _playheadController.UpdatePreview();
             }
         }
@@ -215,6 +215,7 @@ namespace VESCO
         private void AddTrackClick(object sender, RoutedEventArgs e)
         {
             _clipManager.AddVideoTrack();
+            _clipManager.AddAudioTrack();
         }
 
         private void TimelineScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)

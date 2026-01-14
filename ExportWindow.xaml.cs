@@ -97,7 +97,7 @@ namespace VESCO
                     });
                 };
 
-                await renderer.RenderVideoOpenCV(
+                await renderer.RenderVideo(
                     _timeline,
                     settings.OutputPath,
                     settings.Width,

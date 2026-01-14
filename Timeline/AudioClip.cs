@@ -5,25 +5,25 @@ using VESCO.Timeline;
 public class AudioClip : Clip
 {
     public AudioSource Source { get; set; }
-    public double SourceStartTime { get; set; }
+    public double SourceStart { get; set; }
     public double Duration { get; set; }
     public double Volume { get; set; } = 1.0;
 
-    public AudioClip(string filePath, double sourceStartTime, long timelineStartFrame, AudioSource source)
-        : base(filePath, timelineStartFrame)
+    public AudioClip(string filePath, double sourceStart, long timelineStart, AudioSource source)
+        : base(filePath, timelineStart)
     {
         Source = source;
-        SourceStartTime = sourceStartTime;
-        Duration = source.Duration - sourceStartTime;
+        SourceStart = sourceStart;
+        Duration = source.Duration - sourceStart;
     }
 
     public float[] GetAudioAtTimelineFrame(long timelineFrame, double timelineFps, int sampleRate, int channels)
     {
         long relativeFrame = timelineFrame - timelineStart;
         double timeOffset = relativeFrame / timelineFps;
-        double sourceTime = SourceStartTime + timeOffset;
+        double sourceTime = SourceStart + timeOffset;
 
-        if (sourceTime < SourceStartTime || sourceTime >= SourceStartTime + Duration)
+        if (sourceTime < SourceStart || sourceTime >= SourceStart + Duration)
             return null;
 
         using var reader = new AudioFileReader(Source.FilePath);
@@ -48,15 +48,15 @@ public class AudioClip : Clip
 
     public (AudioClip?, AudioClip?) SplitAtTime(double splitTime)
     {
-        if (splitTime <= SourceStartTime || splitTime >= SourceStartTime + Duration)
+        if (splitTime <= SourceStart || splitTime >= SourceStart + Duration)
             return (null, null);
 
         var firstPart = new AudioClip(
             filePath,
-            SourceStartTime,
+            SourceStart,
             timelineStart,
             Source);
-        firstPart.Duration = splitTime - SourceStartTime;
+        firstPart.Duration = splitTime - SourceStart;
 
         var secondPart = new AudioClip(
             filePath,
