@@ -1,23 +1,25 @@
 ﻿using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Controls;
-using VESCO.Timeline;
 
 namespace VESCO
 {
     public partial class ExportWindow : Window
     {
         private Timeline.Timeline _timeline;
+        private CancellationTokenSource _cancellationTokenSource;
 
         public ExportWindow(Timeline.Timeline timeline)
         {
             InitializeComponent();
             _timeline = timeline;
 
+            // Set default output path
             OutputPathTextBox.Text = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
                 $"Export_{DateTime.Now:yyyyMMdd_HHmmss}.mp4");
 
+            // Subscribe to resolution change
             ResolutionComboBox.SelectionChanged += ResolutionComboBox_SelectionChanged;
         }
 
@@ -76,7 +78,10 @@ namespace VESCO
             // Get settings
             var settings = GetExportSettings();
 
-            // Disable UI during export
+            // Create cancellation token
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            // Disable export button, enable cancel
             ExportButton.IsEnabled = false;
             ProgressPanel.Visibility = Visibility.Visible;
 
@@ -92,7 +97,7 @@ namespace VESCO
                     });
                 };
 
-                await renderer.RenderVideo(
+                await renderer.RenderVideoOpenCV(
                     _timeline,
                     settings.OutputPath,
                     settings.Width,
@@ -100,13 +105,22 @@ namespace VESCO
                     settings.Fps,
                     settings.Codec,
                     settings.Quality,
-                    settings.PixelFormat);
+                    settings.PixelFormat,
+                    _cancellationTokenSource.Token);
 
-                MessageBox.Show("Export completed successfully!", "Export Complete",
+                if (!_cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    MessageBox.Show("Export completed successfully!", "Export Complete",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    DialogResult = true;
+                    Close();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                MessageBox.Show("Export was cancelled.", "Export Cancelled",
                     MessageBoxButton.OK, MessageBoxImage.Information);
-
-                DialogResult = true;
-                Close();
             }
             catch (Exception ex)
             {
@@ -117,13 +131,34 @@ namespace VESCO
             {
                 ExportButton.IsEnabled = true;
                 ProgressPanel.Visibility = Visibility.Collapsed;
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
             }
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = false;
-            Close();
+            // If export is in progress, cancel it
+            if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
+            {
+                var result = MessageBox.Show(
+                    "Are you sure you want to cancel the export?",
+                    "Cancel Export",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    _cancellationTokenSource.Cancel();
+                    ProgressText.Text = "Cancelling export...";
+                }
+            }
+            else
+            {
+                // No export in progress, just close
+                DialogResult = false;
+                Close();
+            }
         }
 
         private ExportSettings GetExportSettings()

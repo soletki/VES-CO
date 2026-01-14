@@ -12,6 +12,10 @@ namespace VESCO
         private readonly TimelineController _timelineController;
         private readonly Canvas _timelineCanvas;
         private readonly StackPanel _trackLabelsPanel;
+        private readonly TextBox _xTextBox;
+        private readonly TextBox _yTextBox;
+        private readonly TextBox _scaleTextBox;
+        private readonly TextBox _opacityTextBox;
         private VideoClip _selectedClip;
         private int _selectedTrackIndex = -1;
         private bool _isDragging;
@@ -22,11 +26,15 @@ namespace VESCO
         public event Action<VideoClip> ClipSelected;
         public bool IsDragging => _isDragging;
 
-        public ClipManager(TimelineController timelineController, Canvas timelineCanvas, StackPanel trackLabelsPanel)
+        public ClipManager(TimelineController timelineController, Canvas timelineCanvas, StackPanel trackLabelsPanel, TextBox xTextBox, TextBox yTextBox, TextBox scaleTextBox, TextBox opacityTextBox)
         {
             _timelineController = timelineController;
             _timelineCanvas = timelineCanvas;
             _trackLabelsPanel = trackLabelsPanel;
+            _xTextBox = xTextBox;
+            _yTextBox = yTextBox;
+            _scaleTextBox = scaleTextBox;
+            _opacityTextBox = opacityTextBox;
         }
 
         public void IncreaseTrackHeight()
@@ -251,6 +259,14 @@ namespace VESCO
                 if (position.X >= clipX && position.X <= clipX + clipWidth)
                 {
                     _selectedClip = clip;
+                    _xTextBox.IsEnabled = true;
+                    _xTextBox.Text = _selectedClip.x.ToString();
+                    _yTextBox.IsEnabled = true;
+                    _yTextBox.Text = _selectedClip.y.ToString();
+                    _scaleTextBox.IsEnabled = true;
+                    _scaleTextBox.Text = _selectedClip.scale.ToString("F2");
+                    _opacityTextBox.IsEnabled = true;
+                    _opacityTextBox.Text = _selectedClip.opacity.ToString("F2");
                     _selectedTrackIndex = trackIndex;
                     HighlightSelectedClip();
                     ClipSelected?.Invoke(clip);
@@ -260,6 +276,10 @@ namespace VESCO
             }
 
             _selectedClip = null;
+            _xTextBox.IsEnabled = false;
+            _yTextBox.IsEnabled = false;
+            _scaleTextBox.IsEnabled = false;
+            _opacityTextBox.IsEnabled = false;
             _selectedTrackIndex = -1;
             ClearHighlights();
         }

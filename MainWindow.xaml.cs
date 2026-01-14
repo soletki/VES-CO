@@ -32,7 +32,7 @@ namespace VESCO
                 TimecodeDisplay,
                 FrameCounter,
                 TimelineScrollViewer);
-            _clipManager = new ClipManager(_timelineController, TimelineArea, TrackLabelsPanel);
+            _clipManager = new ClipManager(_timelineController, TimelineArea, TrackLabelsPanel, XTextBox, YTextBox, ScaleTextBox, OpacityTextBox);
             _toolManager = new ToolManager(SelectTool, CutTool);
 
             InitializeEventHandlers();

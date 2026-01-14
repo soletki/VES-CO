@@ -18,44 +18,55 @@ namespace VESCO
             double fps,
             string codec,
             int quality,
-            string pixelFormat)
+            string pixelFormat,
+            CancellationToken cancellationToken = default)
         {
+            // Set full quality for rendering
             double originalScale = timeline.PreviewScale;
             timeline.PreviewScale = 1.0;
 
             long totalFrames = timeline.GetTotalFrames();
 
+            // Create temp directory for frames
             string tempDir = Path.Combine(Path.GetTempPath(), "vesco_render_" + Guid.NewGuid());
             Directory.CreateDirectory(tempDir);
 
-            long totalOutputFrames = (long)(totalFrames * (fps / timeline.Fps));
-
             try
             {
+                // Step 1: Export all frames as images
                 await Task.Run(() =>
                 {
-                    for (long frame = 0; frame < totalOutputFrames; frame++)
+                    for (long frame = 0; frame < totalFrames; frame++)
                     {
-                        long outFrameIndex = (long)(frame * (timeline.Fps / fps));
+                        // Check for cancellation
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                        var bitmapSource = timeline.GetFrameAtFrame(outFrameIndex);
+                        var bitmapSource = timeline.GetFrameAtFrame(frame);
 
                         if (bitmapSource != null)
                         {
+                            // Save frame as PNG
                             string framePath = Path.Combine(tempDir, $"frame_{frame:D6}.png");
                             SaveBitmapSourceAsPng(bitmapSource, framePath);
                         }
 
-                        OnProgress?.Invoke((frame + 1.0) / totalOutputFrames * 50.0);
+                        // Report progress (50% for frame export)
+                        OnProgress?.Invoke((frame + 1.0) / totalFrames * 50.0);
                     }
-                });
+                }, cancellationToken);
 
-                await EncodeWithFFmpeg(tempDir, outputPath, fps, codec, quality, pixelFormat, width, height);
+                // Check cancellation before encoding
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // Step 2: Use FFmpeg to encode frames into video
+                await EncodeWithFFmpeg(tempDir, outputPath, fps, codec, quality, pixelFormat, width, height, cancellationToken);
             }
             finally
             {
+                // Restore original scale
                 timeline.PreviewScale = originalScale;
 
+                // Cleanup temp files
                 try
                 {
                     Directory.Delete(tempDir, true);
@@ -72,7 +83,8 @@ namespace VESCO
             int quality,
             string pixelFormat,
             int width,
-            int height)
+            int height,
+            CancellationToken cancellationToken)
         {
             string inputPattern = Path.Combine(framesDir, "frame_%06d.png");
             string scale = $"-vf scale={width}:{height}";
@@ -118,7 +130,34 @@ namespace VESCO
 
             process.Start();
             process.BeginErrorReadLine();
-            await process.WaitForExitAsync();
+            using (cancellationToken.Register(() =>
+            {
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill();
+                    }
+                }
+                catch { /* Process might have already exited */ }
+            }))
+            {
+                await process.WaitForExitAsync(cancellationToken);
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    if (File.Exists(outputPath))
+                    {
+                        File.Delete(outputPath);
+                    }
+                }
+                catch { /* Ignore cleanup errors */ }
+
+                throw new OperationCanceledException();
+            }
 
             if (process.ExitCode != 0)
             {
@@ -144,7 +183,8 @@ namespace VESCO
             double fps,
             string codec,
             int quality,
-            string pixelFormat)
+            string pixelFormat,
+            CancellationToken cancellationToken = default)
         {
             // Set full quality for rendering
             double originalScale = timeline.PreviewScale;
@@ -173,7 +213,7 @@ namespace VESCO
 
                     for (long frame = 0; frame < totalOutputFrames; frame++)
                     {
-
+                        cancellationToken.ThrowIfCancellationRequested();
                         long outFrameIndex = (long)(frame * (timeline.Fps / fps));
                         var bitmapSource = timeline.GetFrameAtFrame(outFrameIndex);
 
@@ -219,7 +259,7 @@ namespace VESCO
                 {
                     timeline.PreviewScale = originalScale;
                 }
-            });
+            }, cancellationToken);
         }
 
         private int GetFourCC(string codec)

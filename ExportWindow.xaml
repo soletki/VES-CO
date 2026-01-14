@@ -54,7 +54,6 @@
                 <TextBlock Text="Resolution" Foreground="White" FontWeight="Bold" Margin="0,0,0,5"/>
                 <ComboBox x:Name="ResolutionComboBox" 
                           Background="#3F3F46" 
-                          Foreground="White" 
                           BorderBrush="#555"
                           Padding="8"
                           Margin="0,0,0,15"
@@ -99,7 +98,6 @@
                 <TextBlock Text="Frame Rate (FPS)" Foreground="White" FontWeight="Bold" Margin="0,0,0,5"/>
                 <ComboBox x:Name="FpsComboBox" 
                           Background="#3F3F46" 
-                          Foreground="White" 
                           BorderBrush="#555"
                           Padding="8"
                           Margin="0,0,0,15"
@@ -115,7 +113,6 @@
                 <TextBlock Text="Video Codec" Foreground="White" FontWeight="Bold" Margin="0,0,0,5"/>
                 <ComboBox x:Name="CodecComboBox" 
                           Background="#3F3F46" 
-                          Foreground="White" 
                           BorderBrush="#555"
                           Padding="8"
                           Margin="0,0,0,15"
@@ -160,7 +157,6 @@
                 <TextBlock Text="Pixel Format" Foreground="White" FontWeight="Bold" Margin="0,0,0,5"/>
                 <ComboBox x:Name="PixelFormatComboBox" 
                           Background="#3F3F46" 
-                          Foreground="White" 
                           BorderBrush="#555"
                           Padding="8"
                           Margin="0,0,0,15"
