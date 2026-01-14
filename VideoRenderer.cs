@@ -27,6 +27,7 @@ namespace VESCO
             timeline.PreviewScale = 1.0;
 
             long totalFrames = timeline.GetTotalFrames();
+            long totalOutputFrames = (long)(totalFrames * (fps / timeline.Fps));
 
             // Create temp directory for frames
             string tempDir = Path.Combine(Path.GetTempPath(), "vesco_render_" + Guid.NewGuid());
@@ -37,12 +38,13 @@ namespace VESCO
                 // Step 1: Export all frames as images
                 await Task.Run(() =>
                 {
-                    for (long frame = 0; frame < totalFrames; frame++)
+                    for (long frame = 0; frame < totalOutputFrames; frame++)
                     {
                         // Check for cancellation
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        var bitmapSource = timeline.GetFrameAtFrame(frame);
+                        long outFrameIndex = (long)(frame * (timeline.Fps / fps));
+                        var bitmapSource = timeline.GetFrameAtFrame(outFrameIndex);
 
                         if (bitmapSource != null)
                         {
@@ -52,7 +54,7 @@ namespace VESCO
                         }
 
                         // Report progress (50% for frame export)
-                        OnProgress?.Invoke((frame + 1.0) / totalFrames * 50.0);
+                        OnProgress?.Invoke((frame + 1.0) / totalOutputFrames * 100.0);
                     }
                 }, cancellationToken);
 
@@ -92,12 +94,14 @@ namespace VESCO
             string scale = $"-vf scale={width}:{height}";
 
             string audioPath = Path.Combine(Path.GetTempPath(), $"audio_{Guid.NewGuid()}.wav");
+            Debug.WriteLine(audioPath);
             ExportAudio(timeline, audioPath, fps, cancellationToken);
 
             var startInfo = new ProcessStartInfo
             {
                 FileName = "ffmpeg",
                 Arguments = $"-framerate {fps} -i \"{inputPattern}\" " +
+                           $"-i \"{audioPath}\" " +
                            $"{scale} " +
                            $"-c:v {codec} " +
                            $"-c:a aac " +

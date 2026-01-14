@@ -202,7 +202,7 @@ namespace VESCO
             _trackLabelsPanel.Height = totalHeight;
         }
 
-        public void AddVideoClipAtPosition(SourceMedia source, double xPosition, double yPosition)
+        public void AddVideoClipAtPosition(VideoSource source, double xPosition, double yPosition)
         {
             int trackIndex = GetVideoTrackIndexFromY(yPosition);
             if (trackIndex < 0 || trackIndex >= _timelineController.Timeline.VideoTracks.Count)

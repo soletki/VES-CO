@@ -19,9 +19,9 @@ namespace VESCO.Timeline
         {
             long maxFrame = 0;
 
-            foreach (var track in VideoTracks)
+            foreach (VideoTrack track in VideoTracks)
             {
-                foreach (var clip in track.Clips)
+                foreach (VideoClip clip in track.Clips)
                 {
                     long clipEnd = clip.timelineStart + (long)(clip.length * (Fps / clip.source.FPS));
                     if (clipEnd > maxFrame)

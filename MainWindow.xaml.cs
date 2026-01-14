@@ -1,10 +1,12 @@
 ﻿using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using VESCO.Timeline;
+using Xabe.FFmpeg;
 
 namespace VESCO
 {
@@ -15,7 +17,7 @@ namespace VESCO
         private readonly ClipManager _clipManager;
         private readonly ToolManager _toolManager;
 
-        public ObservableCollection<SourceMedia> MediaBin { get; } = new();
+        public ObservableCollection<SourceFile> MediaBin { get; } = new();
 
         public MainWindow()
         {
@@ -126,7 +128,7 @@ namespace VESCO
             PlayPause.Content = _playheadController.IsPlaying ? "⏸" : "▶";
         }
 
-        private void OpenVideo_Click(object sender, RoutedEventArgs e)
+        private async void OpenVideo_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
             {
@@ -135,13 +137,33 @@ namespace VESCO
 
             if (dialog.ShowDialog() == true)
             {
-                MediaBin.Add(new SourceMedia(dialog.FileName));
+                MediaBin.Add(new VideoSource(dialog.FileName));
+                IMediaInfo mediaInfo = await Xabe.FFmpeg.FFmpeg.GetMediaInfo(dialog.FileName);
+                var audioStream = mediaInfo.AudioStreams.ToList();
+                if (audioStream.Count > 0)
+                {
+                    string tempDir = Path.Combine(Path.GetTempPath(), "vesco_audio_" + Guid.NewGuid());
+                    Directory.CreateDirectory(tempDir);
+                    for (int i = 0; i < audioStream.Count; i++)
+                    {
+                        var conversion = Xabe.FFmpeg.FFmpeg.Conversions.New()
+                            .AddStream(audioStream)
+                            .SetOutput(tempDir + $"_{i}.wav")
+                            .SetOverwriteOutput(true);
+
+                        await conversion.Start();
+                    }
+                    for (int i = 0; i < audioStream.Count; i++)
+                    {
+                        MediaBin.Add(new AudioSource(tempDir + $"_{i}.wav"));
+                    }
+                }
             }
         }
 
         private void MediaBinMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (MediaBinList.SelectedItem is SourceMedia source)
+            if (MediaBinList.SelectedItem is SourceFile source)
             {
                 DragDrop.DoDragDrop(MediaBinList, source, DragDropEffects.Copy);
             }
@@ -149,12 +171,20 @@ namespace VESCO
 
         private void TimelineDrop(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(typeof(SourceMedia)))
+            if (e.Data.GetDataPresent(typeof(VideoSource)))
             {
-                var source = (SourceMedia)e.Data.GetData(typeof(SourceMedia));
+                var source = (VideoSource)e.Data.GetData(typeof(VideoSource));
                 var dropPosition = e.GetPosition(TimelineArea);
 
                 _clipManager.AddVideoClipAtPosition(source, dropPosition.X, dropPosition.Y);
+                _playheadController.UpdatePreview();
+            }
+            else if (e.Data.GetDataPresent(typeof(AudioSource)))
+            {
+                var source = (AudioSource)e.Data.GetData(typeof(AudioSource));
+                var dropPosition = e.GetPosition(TimelineArea);
+
+                _clipManager.AddAudioClipAtPosition(source, dropPosition.X, dropPosition.Y);
                 _playheadController.UpdatePreview();
             }
         }

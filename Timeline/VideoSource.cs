@@ -1,23 +1,18 @@
 ﻿using OpenCvSharp;
-using System.IO;
 
 namespace VESCO.Timeline
 {
-    public class SourceMedia
+    public class VideoSource : SourceFile
     {
-        public string FilePath { get; set; }
         public long FrameCount { get; set; }
         public double FPS { get; set; }
 
-        public SourceMedia(string filePath)
+        public VideoSource(string filePath) : base(filePath)
         {
-            FilePath = filePath;
-
             using var cap = new VideoCapture(filePath);
 
             FrameCount = cap.FrameCount;
             FPS = cap.Fps;
         }
-        public string FileName => Path.GetFileName(FilePath);
     }
 }
