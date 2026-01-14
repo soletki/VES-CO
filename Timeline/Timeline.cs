@@ -8,9 +8,8 @@ namespace VESCO.Timeline
     {
         public double Fps { get; set; }
         public List<VideoTrack> VideoTracks { get; set; } = new();
-
+        public List<AudioTrack> AudioTracks { get; set; } = new();
         public double PreviewScale { get; set; } = 0.5;
-
         public Timeline(double fps)
         {
             Fps = fps;
@@ -24,7 +23,7 @@ namespace VESCO.Timeline
             {
                 foreach (var clip in track.Clips)
                 {
-                    long clipEnd = clip.TimelineStart + (long)(clip.Length * (Fps / clip.Source.FPS));
+                    long clipEnd = clip.timelineStart + (long)(clip.length * (Fps / clip.source.FPS));
                     if (clipEnd > maxFrame)
                         maxFrame = clipEnd;
                 }
@@ -164,6 +163,53 @@ namespace VESCO.Timeline
             {
                 result?.Dispose();
             }
+        }
+
+        public float[]? GetAudioAtFrame(long frame, int sampleRate = 48000, int channels = 2)
+        {
+            List<float[]> trackAudios = new List<float[]>();
+
+            // Collect audio from all tracks
+            foreach (var track in AudioTracks)
+            {
+                var audio = track.GetAudioAtFrame(frame, Fps, sampleRate, channels);
+                if (audio != null)
+                {
+                    trackAudios.Add(audio);
+                }
+            }
+
+            // Mix all tracks together
+            if (trackAudios.Count == 0) return null;
+            if (trackAudios.Count == 1) return trackAudios[0];
+
+            return MixAudio(trackAudios);
+        }
+
+        private float[] MixAudio(List<float[]> tracks)
+        {
+            int maxLength = tracks.Max(t => t.Length);
+            float[] mixed = new float[maxLength];
+
+            foreach (var track in tracks)
+            {
+                for (int i = 0; i < track.Length; i++)
+                {
+                    mixed[i] += track[i];
+                }
+            }
+
+            // Normalize to prevent clipping
+            float max = mixed.Max(Math.Abs);
+            if (max > 1.0f)
+            {
+                for (int i = 0; i < mixed.Length; i++)
+                {
+                    mixed[i] /= max;
+                }
+            }
+
+            return mixed;
         }
     }
 }

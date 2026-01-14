@@ -20,13 +20,13 @@ namespace VESCO.Timeline
             if (clip == null)
                 return;
 
-            long newClipStart = clip.TimelineStart;
-            long newClipEnd = (long)(clip.TimelineStart + clip.Length * (Fps / clip.Source.FPS));
+            long newClipStart = clip.timelineStart;
+            long newClipEnd = (long)(clip.timelineStart + clip.length * (Fps / clip.source.FPS));
 
             foreach (var existingClip in Clips)
             {
-                long existingClipStart = existingClip.TimelineStart;
-                long existingClipEnd = (long)(existingClip.TimelineStart + existingClip.Length * (Fps/existingClip.Source.FPS));
+                long existingClipStart = existingClip.timelineStart;
+                long existingClipEnd = (long)(existingClip.timelineStart + existingClip.length * (Fps/existingClip.source.FPS));
             }
 
             Clips.Add(clip);
@@ -38,9 +38,9 @@ namespace VESCO.Timeline
         {
             foreach (var clip in Clips)
             {
-                long clipEndFrame = clip.TimelineStart + (long)(clip.Length * (Fps / clip.Source.FPS));
+                long clipEndFrame = clip.timelineStart + (long)(clip.length * (Fps / clip.source.FPS));
 
-                if (timelineFrame >= clip.TimelineStart && timelineFrame < clipEndFrame)
+                if (timelineFrame >= clip.timelineStart && timelineFrame < clipEndFrame)
                 {
                     return clip.GetFrameAtTimelineFrame(timelineFrame, Fps, scale);
                 }
@@ -53,8 +53,8 @@ namespace VESCO.Timeline
         {
             foreach (var clip in Clips)
             {
-                long clipEndFrame = clip.TimelineStart + (long)(clip.Length * (Fps / clip.Source.FPS));
-                if (timelineFrame >= clip.TimelineStart && timelineFrame < clipEndFrame)
+                long clipEndFrame = clip.timelineStart + (long)(clip.length * (Fps / clip.source.FPS));
+                if (timelineFrame >= clip.timelineStart && timelineFrame < clipEndFrame)
                 {
                     return clip;
                 }

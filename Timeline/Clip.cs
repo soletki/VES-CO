@@ -1,38 +1,20 @@
-﻿using System.Diagnostics;
+﻿using System.IO;
 using System.Windows.Controls;
 
 namespace VESCO.Timeline
 {
     public abstract class Clip
     {
-        public string Name { get; set; }
-
-        public long Length { get; set; }
-
-        public long SourceStart { get; set; }
-
-        public long TimelineStart { get; set; }
-
-        public SourceMedia Source { get; set; }
-
+        public string name { get; set; }
+        public string filePath { get; set; }
+        public long timelineStart { get; set; }
         public Border rect { get; set; }
 
-        protected Clip(
-            string name,
-            long sourceStart,
-            long timelineStart,
-            SourceMedia source,
-            long length = -1)
+        protected Clip(string filePath, long timelineStart)
         {
-            Name = name;
-            SourceStart = sourceStart;
-            TimelineStart = timelineStart;
-            Source = source;
-
-            Length = (length==-1) ? (source.FrameCount - SourceStart) : length;
-
-            //Debug.WriteLine($"New clip with Length: {Length} Starting at frame: {TimelineStart}");
+            this.filePath = filePath;
+            this.timelineStart = timelineStart;
+            name = Path.GetFileName(filePath);
         }
-
     }
 }

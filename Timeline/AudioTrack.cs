@@ -1,0 +1,63 @@
+﻿using NAudio.Wave;
+
+namespace VESCO.Timeline
+{
+    public class AudioTrack
+    {
+        public string Name { get; set; }
+        public List<AudioClip> Clips { get; set; } = new();
+        public double Volume { get; set; } = 1.0;
+        public bool IsMuted { get; set; } = false;
+
+        public AudioTrack(string name)
+        {
+            Name = name;
+        }
+
+        public void AddClip(AudioClip clip)
+        {
+            Clips.Add(clip);
+        }
+
+        public void RemoveClip(AudioClip clip)
+        {
+            Clips.Remove(clip);
+        }
+
+        public float[]? GetAudioAtFrame(long frame, double fps, int sampleRate, int channels)
+        {
+            if (IsMuted) return null;
+
+            // Find clips at this frame
+            foreach (var clip in Clips)
+            {
+                long clipEndFrame = clip.timelineStart + (long)(clip.Source.Duration * fps);
+
+                if (frame >= clip.timelineStart && frame < clipEndFrame)
+                {
+                    // Get audio samples for this frame
+                    double frameTime = frame / fps;
+                    double sourceTime = frameTime - (clip.timelineStart / fps) + clip.SourceStartTime;
+
+                    using var reader = new AudioFileReader(clip.Source.FilePath);
+                    reader.CurrentTime = TimeSpan.FromSeconds(sourceTime);
+
+                    // Read samples for one frame duration
+                    int samplesPerFrame = (int)(sampleRate / fps * channels);
+                    float[] buffer = new float[samplesPerFrame];
+                    reader.Read(buffer, 0, samplesPerFrame);
+
+                    // Apply track and clip volume
+                    for (int i = 0; i < buffer.Length; i++)
+                    {
+                        buffer[i] *= (float)(Volume * clip.Volume);
+                    }
+
+                    return buffer;
+                }
+            }
+
+            return null;
+        }
+    }
+}

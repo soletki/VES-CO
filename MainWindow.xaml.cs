@@ -214,7 +214,7 @@ namespace VESCO
 
         private void AddTrackClick(object sender, RoutedEventArgs e)
         {
-            _clipManager.AddTrack();
+            _clipManager.AddVideoTrack();
         }
 
         private void TimelineScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)

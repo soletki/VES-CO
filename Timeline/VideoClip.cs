@@ -1,5 +1,6 @@
 ﻿using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -16,23 +17,34 @@ namespace VESCO.Timeline
         public double scale = 1.0;
         public double opacity = 1.0;
 
-        public VideoClip(string name, long sourceStartFrame, long timelineStartFrame, SourceMedia source, long length = -1, int x = 0, int y = 0, double scale = 1.0, double opacity = 1.0)
-            : base(name, sourceStartFrame, timelineStartFrame, source, length)
+        public SourceMedia source { get; set; }
+        public long sourceStart { get; set; }
+        public long length { get; set; }
+        public Border rect { get; set; }
+
+        public VideoClip(string filePath, long sourceStart, long timelineStart, SourceMedia source, long length = -1, int x = 0, int y = 0, double scale = 1.0, double opacity = 1.0)
+            : base(filePath, timelineStart)
         {
             _capture = new VideoCapture(source.FilePath);
+            this.source = source;
+            this.sourceStart = sourceStart;
             this.x = x;
             this.y = y;
             this.scale = scale;
             this.opacity = opacity;
+            if(length != -1)
+                this.length = length;
+            else
+                this.length = source.FrameCount - sourceStart;
         }
 
         public BitmapSource GetFrameAtTimelineFrame(long timelineFrame, double fps, double scale)
         {
-            double fpsRatio = Source.FPS / fps;
-            long localFrame = SourceStart +
-                (long)Math.Round((timelineFrame - TimelineStart) * fpsRatio);
+            double fpsRatio = source.FPS / fps;
+            long localFrame = sourceStart +
+                (long)Math.Round((timelineFrame - timelineStart) * fpsRatio);
 
-            localFrame = Math.Clamp(localFrame, 0, Source.FrameCount - 1);
+            localFrame = Math.Clamp(localFrame, 0, source.FrameCount - 1);
 
             if (_lastFrame != localFrame - 1)
             {
@@ -45,22 +57,22 @@ namespace VESCO.Timeline
 
             _lastFrame = localFrame;
 
-            Cv2.Resize(mat, mat, new OpenCvSharp.Size(mat.Width * scale, mat.Height * scale), 0, 0, InterpolationFlags.Area);
+            Cv2.Resize(mat, mat, new Size(mat.Width * scale, mat.Height * scale), 0, 0, InterpolationFlags.Area);
 
             return mat.ToBitmapSource();
         }
 
 
-        public (VideoClip first, VideoClip second) SplitAtFrame(long splitFrame, Timeline timeline)
+        public (VideoClip? first, VideoClip? second) SplitAtFrame(long splitFrame, Timeline timeline)
         {
-            if (splitFrame <= 0 || splitFrame >= this.Length)
+            if (splitFrame <= 0 || splitFrame >= this.length)
                 return (this, null);
 
             var firstClip = new VideoClip(
-                Name,
-                SourceStart,
-                TimelineStart,
-                new SourceMedia(Source.FilePath),
+                filePath,
+                sourceStart,
+                timelineStart,
+                new SourceMedia(source.FilePath),
                 length: splitFrame,
                 x,
                 y,
@@ -69,11 +81,11 @@ namespace VESCO.Timeline
             );
 
             var secondClip = new VideoClip(
-                Name,
+                filePath,
                 splitFrame,
-                (long)(TimelineStart + splitFrame * (timeline.Fps / Source.FPS)),
-                new SourceMedia(Source.FilePath),
-                length: Length - splitFrame,
+                (long)(timelineStart + splitFrame * (timeline.Fps / source.FPS)),
+                new SourceMedia(source.FilePath),
+                length: length - splitFrame,
                 x,
                 y,
                 scale,
