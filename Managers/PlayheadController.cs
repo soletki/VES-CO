@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
@@ -11,8 +10,6 @@ namespace VESCO.Managers
     {
         private readonly TimelineController _timelineController;
         private readonly Canvas _playheadCanvas;
-        private readonly Rectangle _playhead;
-        private readonly Polygon _playheadTop;
         private readonly Image _previewImage;
         private readonly TextBlock _timecodeDisplay;
         private readonly TextBlock _frameCounter;
@@ -35,8 +32,6 @@ namespace VESCO.Managers
             _timelineController = timelineController;
             _timelineScrollViewer = timelineScrollViewer;
             _playheadCanvas = playheadCanvas;
-            _playhead = playhead;
-            _playheadTop = playheadTop;
             _previewImage = previewImage;
             _timecodeDisplay = timecodeDisplay;
             _frameCounter = frameCounter;

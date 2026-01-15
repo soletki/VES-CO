@@ -99,8 +99,15 @@ namespace VESCO.Timeline
                             Cv2.CvtColor(frameMat, frameToLayer, ColorConversionCodes.BGRA2BGR);
                         }
 
-                        if(frame.scale!=1.0)
+                        if(frame.scale != 1.0)
                         {
+                            if(frame.scale <= 0.0)
+                            {
+                                if (frameToLayer != frameMat)
+                                    frameToLayer.Dispose();
+                                continue;
+                            }
+
                             Mat resized = new Mat();
                             Cv2.Resize(frameToLayer, resized, new Size(frameToLayer.Width * frame.scale, frameToLayer.Height * frame.scale), 0, 0, InterpolationFlags.Area);
                             if (frameToLayer != frameMat)
@@ -108,8 +115,8 @@ namespace VESCO.Timeline
                             frameToLayer = resized;
                         }
 
-                        int dstX = frame.x;
-                        int dstY = frame.y;
+                        int dstX = (int)(frame.x * PreviewScale);
+                        int dstY = (int)(frame.y * PreviewScale);
 
                         int srcX = 0;
                         int srcY = 0;

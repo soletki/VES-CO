@@ -39,7 +39,7 @@ namespace VESCO
                 TimelineScrollViewer);
             _clipDrawManager = new ClipDrawManager(_timelineController, TimelineArea); 
             _trackManager = new TrackManager(_timelineController, TimelineArea, TrackLabelsPanel, _clipDrawManager);
-            _clipSelectionManager = new ClipSelectionManager(_timelineController, _clipDrawManager, _trackManager, TimelineArea, XTextBox, YTextBox, ScaleTextBox, OpacityTextBox);
+            _clipSelectionManager = new ClipSelectionManager(_timelineController, _clipDrawManager, _trackManager, TimelineArea, XTextBox, XSlider, YTextBox, YSlider, ScaleTextBox, ScaleSlider, OpacityTextBox, OpacitySlider);
             _toolManager = new ToolManager(SelectTool, CutTool);
             
             _trackManager.InitializeTracks();
@@ -338,6 +338,7 @@ namespace VESCO
                 if (double.TryParse(ScaleTextBox.Text, out double scale))
                 {
                     _clipSelectionManager.UpdateSelectedClipScale(scale);
+                    ScaleSlider.Value = scale;
                     _playheadController.UpdatePreview();
                 }
             }
@@ -350,9 +351,64 @@ namespace VESCO
                 if (double.TryParse(OpacityTextBox.Text, out double opacity))
                 {
                     _clipSelectionManager.UpdateSelectedClipOpacity(opacity);
+                    OpacitySlider.Value = opacity;
                     _playheadController.UpdatePreview();
                 }
             }
+        }
+
+        private void OpacitySliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (OpacityTextBox != null)
+            {
+                double opacity = e.NewValue;
+                OpacityTextBox.Text = opacity.ToString("F2");
+                _clipSelectionManager.UpdateSelectedClipOpacity(opacity);
+                _playheadController.UpdatePreview();
+            }
+        }
+
+        private void ScaleSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (ScaleTextBox != null)
+            {
+                double scale = e.NewValue;
+                ScaleTextBox.Text = scale.ToString("F2");
+                _clipSelectionManager.UpdateSelectedClipScale(scale);
+                _playheadController.UpdatePreview();
+            }
+        }
+
+        private void XSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (OpacityTextBox != null)
+            {
+                double x = e.NewValue;
+                XTextBox.Text = x.ToString("F0");
+                _clipSelectionManager.UpdateSelectedClipX((int)x);
+                _playheadController.UpdatePreview();
+            }
+        }
+
+        private void YSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (OpacityTextBox != null)
+            {
+                double y = e.NewValue;
+                YTextBox.Text = y.ToString("F0");
+                _clipSelectionManager.UpdateSelectedClipY((int)y);
+                _playheadController.UpdatePreview();
+            }
+        }
+
+        private void Exit(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
+        }
+
+        private void ClearTimeline(object sender, RoutedEventArgs e)
+        {
+            _trackManager.ClearTracks();
         }
     }
 }

@@ -20,13 +20,13 @@
                 <MenuItem Header="Import Media" Click="OpenVideoClick" Foreground="#2D2D30"/>
                 <MenuItem Header="Export Media" Click="ExportVideoClick" Foreground="#2D2D30"/>
                 <Separator/>
-                <MenuItem Header="Exit" Foreground="#2D2D30"/>
+                <MenuItem Header="Exit" Foreground="#2D2D30" Click="Exit"/>
             </MenuItem>
             <MenuItem Header="Sequence" Foreground="White">
                 <MenuItem Header="Add Track" Click="AddTrackClick" Foreground="#2D2D30"/>
             </MenuItem>
-            <MenuItem Header="Window" Foreground="White">
-                <MenuItem Header="Reset Workspace" Foreground="#2D2D30"/>
+            <MenuItem Header="Timeline" Foreground="White">
+                <MenuItem Header="Clear Timeline" Foreground="#2D2D30" Click="ClearTimeline"/>
             </MenuItem>
         </Menu>
 
@@ -72,7 +72,7 @@
                                         <ColumnDefinition Width="80"/>
                                     </Grid.ColumnDefinitions>
                                     <Slider IsEnabled="False" Name="XSlider"  Grid.Column="0" Minimum="-1000" Maximum="1000" Value="0" 
-                                            VerticalAlignment="Center" Margin="0,0,10,0" />
+                                            VerticalAlignment="Center" Margin="0,0,10,0" ValueChanged="XSliderValueChanged"/>
                                     <TextBox IsEnabled="False" Name="XTextBox"  Grid.Column="1" Text="0.0" Background="#3F3F46" 
                                              Foreground="White" BorderBrush="#555" Padding="5" KeyDown="XTextBoxKeyDown"/>
                                 </Grid>
@@ -83,8 +83,8 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="80"/>
                                     </Grid.ColumnDefinitions>
-                                    <Slider IsEnabled="False" Grid.Column="0" Minimum="-1000" Maximum="1000" Value="0" 
-                                        VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider IsEnabled="False" Name="YSlider" Grid.Column="0" Minimum="-1000" Maximum="1000" Value="0" 
+                                        VerticalAlignment="Center" Margin="0,0,10,0" ValueChanged="YSliderValueChanged"/>
                                     <TextBox IsEnabled="False" Name="YTextBox" Grid.Column="1" Text="0.0" Background="#3F3F46" 
                                         Foreground="White" BorderBrush="#555" Padding="5" KeyDown="YTextBoxKeyDown"/>
                                 </Grid>
@@ -96,8 +96,8 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="80"/>
                                     </Grid.ColumnDefinitions>
-                                    <Slider IsEnabled="False" Grid.Column="0" Minimum="0" Maximum="200" Value="100" 
-                                            VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider IsEnabled="False" Name="ScaleSlider" Grid.Column="0" Minimum="0" Maximum="2" Value="1" 
+                                            VerticalAlignment="Center" Margin="0,0,10,0" ValueChanged="ScaleSliderValueChanged"/>
                                     <TextBox IsEnabled="False" Name="ScaleTextBox" Grid.Column="1" Text="100.0" Background="#3F3F46" 
                                              Foreground="White" BorderBrush="#555" Padding="5" KeyDown="ScaleTextBoxKeyDown"/>
                                 </Grid>
@@ -109,8 +109,8 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="80"/>
                                     </Grid.ColumnDefinitions>
-                                    <Slider IsEnabled="False" Grid.Column="0" Minimum="0" Maximum="100" Value="100" 
-                                            VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Slider IsEnabled="True" Name="OpacitySlider" Grid.Column="0" Minimum="0" Maximum="1" Value="1" 
+                                            VerticalAlignment="Center" Margin="0,0,10,0" ValueChanged="OpacitySliderValueChanged"/>
                                     <TextBox IsEnabled="False" Name="OpacityTextBox" Grid.Column="1" Text="100.0" Background="#3F3F46" 
                                              Foreground="White" BorderBrush="#555" Padding="5" KeyDown="OpacityTextBoxKeyDown"/>
                                 </Grid>

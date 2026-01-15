@@ -31,7 +31,7 @@ namespace VESCO.Timeline
             // Find clips at this frame
             foreach (var clip in Clips)
             {
-                long clipEndFrame = clip.TimelineStart + (long)(clip.Source.Duration * fps);
+                long clipEndFrame = clip.TimelineStart + (long)(clip.Duration * fps);
 
                 if (frame >= clip.TimelineStart && frame < clipEndFrame)
                 {

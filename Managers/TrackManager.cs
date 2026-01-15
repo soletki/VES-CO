@@ -76,6 +76,104 @@ namespace VESCO.Managers
             }
         }
 
+        private void UpdateLabels()
+        {
+            _trackLabelsPanel.Children.Clear();
+            for (int i = 0; i < _timelineController.Timeline.VideoTracks.Count; i++)
+            {
+                Grid labelGrid = new Grid();
+                labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
+                labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                Border eyeButton = new Border
+                {
+                    Width = 20,
+                    Height = 20,
+                    Background = Brushes.Transparent,
+                    Child = new TextBlock
+                    {
+                        Text = "👁",
+                        FontSize = 14,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    },
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+                Grid.SetColumn(eyeButton, 0);
+
+                TextBlock trackNameText = new TextBlock
+                {
+                    Text = _timelineController.Timeline.VideoTracks[i].Name,
+                    Foreground = Brushes.White,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    FontWeight = FontWeights.Bold
+                };
+                Grid.SetColumn(trackNameText, 1);
+
+                labelGrid.Children.Add(eyeButton);
+                labelGrid.Children.Add(trackNameText);
+
+                Border labelBorder = new Border
+                {
+                    Height = _trackHeight,
+                    Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(63, 63, 70)),
+                    BorderThickness = new Thickness(0, 0, 0, 1),
+                    Child = labelGrid
+                };
+
+                _trackLabelsPanel.Children.Insert(0, labelBorder);
+            }
+
+            for(int i=0; i< _timelineController.Timeline.AudioTracks.Count; i++)
+            {
+                Grid labelGrid = new Grid();
+                labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
+                labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                Border muteButton = new Border
+                {
+                    Width = 20,
+                    Height = 20,
+                    Background = Brushes.Transparent,
+                    Child = new TextBlock
+                    {
+                        Text = "🔊",
+                        FontSize = 14,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center
+                    },
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+                Grid.SetColumn(muteButton, 0);
+
+                TextBlock trackNameText = new TextBlock
+                {
+                    Text = _timelineController.Timeline.AudioTracks[i].Name,
+                    Foreground = Brushes.White,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    FontWeight = FontWeights.Bold
+                };
+                Grid.SetColumn(trackNameText, 1);
+
+                labelGrid.Children.Add(muteButton);
+                labelGrid.Children.Add(trackNameText);
+
+                Border labelBorder = new Border
+                {
+                    Height = _trackHeight,
+                    Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(63, 63, 70)),
+                    BorderThickness = new Thickness(0, 0, 0, 1),
+                    Child = labelGrid
+                };
+
+                _trackLabelsPanel.Children.Add(labelBorder);
+            }
+        }
+
         public void AddVideoTrack()
         {
             int trackIndex = _timelineController.Timeline.VideoTracks.Count;
@@ -84,50 +182,7 @@ namespace VESCO.Managers
             VideoTrack track = new VideoTrack(trackName, _timelineController.Timeline.Fps);
             _timelineController.Timeline.VideoTracks.Insert(0, track);
 
-            Grid labelGrid = new Grid();
-            labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
-            labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            Border eyeButton = new Border
-            {
-                Width = 20,
-                Height = 20,
-                Background = Brushes.Transparent,
-                Child = new TextBlock
-                {
-                    Text = "👁",
-                    FontSize = 14,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                Cursor = System.Windows.Input.Cursors.Hand
-            };
-            Grid.SetColumn(eyeButton, 0);
-
-            TextBlock trackNameText = new TextBlock
-            {
-                Text = trackName,
-                Foreground = Brushes.White,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                FontWeight = FontWeights.Bold
-            };
-            Grid.SetColumn(trackNameText, 1);
-
-            labelGrid.Children.Add(eyeButton);
-            labelGrid.Children.Add(trackNameText);
-
-            Border labelBorder = new Border
-            {
-                Height = _trackHeight,
-                Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(63, 63, 70)),
-                BorderThickness = new Thickness(0, 0, 0, 1),
-                Child = labelGrid
-            };
-
-            _trackLabelsPanel.Children.Insert(0, labelBorder);
-
+            UpdateLabels();
             UpdateTimelineHeight();
             _clipDrawManager.UpdateClipPositions();
         }
@@ -140,50 +195,7 @@ namespace VESCO.Managers
             AudioTrack track = new AudioTrack(trackName);
             _timelineController.Timeline.AudioTracks.Add(track);
 
-            Grid labelGrid = new Grid();
-            labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
-            labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            Border muteButton = new Border
-            {
-                Width = 20,
-                Height = 20,
-                Background = Brushes.Transparent,
-                Child = new TextBlock
-                {
-                    Text = "🔊",
-                    FontSize = 14,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                },
-                Cursor = System.Windows.Input.Cursors.Hand
-            };
-            Grid.SetColumn(muteButton, 0);
-
-            TextBlock trackNameText = new TextBlock
-            {
-                Text = trackName,
-                Foreground = Brushes.White,
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                FontWeight = FontWeights.Bold
-            };
-            Grid.SetColumn(trackNameText, 1);
-
-            labelGrid.Children.Add(muteButton);
-            labelGrid.Children.Add(trackNameText);
-
-            Border labelBorder = new Border
-            {
-                Height = _trackHeight,
-                Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(63, 63, 70)),
-                BorderThickness = new Thickness(0, 0, 0, 1),
-                Child = labelGrid
-            };
-
-            _trackLabelsPanel.Children.Add(labelBorder);
-
+            UpdateLabels();
             UpdateTimelineHeight();
             _clipDrawManager.UpdateClipPositions();
         }
@@ -229,6 +241,16 @@ namespace VESCO.Managers
         public int GetAudioTrackIndexFromY(double y)
         {
             return (int)(y / _trackHeight) - _timelineController.Timeline.VideoTracks.Count;
+        }
+
+        public void ClearTracks()
+        {
+            _timelineController.Timeline.VideoTracks.Clear();
+            _timelineController.Timeline.AudioTracks.Clear();
+            InitializeTracks();
+            UpdateLabels();
+            _clipDrawManager.UpdateClipPositions();
+            UpdateTimelineHeight();
         }
     }
 }
