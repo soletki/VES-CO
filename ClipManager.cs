@@ -16,14 +16,14 @@ namespace VESCO
         private readonly TextBox _yTextBox;
         private readonly TextBox _scaleTextBox;
         private readonly TextBox _opacityTextBox;
-        private Clip _selectedClip;
+        private Clip ?_selectedClip;
         private int _selectedTrackIndex = -1;
         private bool _isDragging;
         private Point _dragStartMouse;
         private long _dragStartFrame;
-        private int TrackHeight = 40;
+        private int _trackHeight = 40;
 
-        public event Action<Clip> ClipSelected;
+        public event Action<Clip> ?ClipSelected;
         public bool IsDragging => _isDragging;
 
         public ClipManager(TimelineController timelineController, Canvas timelineCanvas, StackPanel trackLabelsPanel, TextBox xTextBox, TextBox yTextBox, TextBox scaleTextBox, TextBox opacityTextBox)
@@ -39,7 +39,7 @@ namespace VESCO
 
         public void IncreaseTrackHeight()
         {
-            TrackHeight += 10;
+            _trackHeight += 10;
 
             UpdateTimelineHeight();
             UpdateClipPositions();
@@ -48,7 +48,7 @@ namespace VESCO
 
         public void DecreaseTrackHeight()
         {
-            TrackHeight = Math.Max(10, TrackHeight-10);
+            _trackHeight = Math.Max(10, _trackHeight-10);
 
             UpdateTimelineHeight();
             UpdateClipPositions();
@@ -88,7 +88,6 @@ namespace VESCO
             VideoTrack track = new VideoTrack(trackName, _timelineController.Timeline.Fps);
             _timelineController.Timeline.VideoTracks.Insert(0, track);
 
-            // Create track label with eye icon
             Grid labelGrid = new Grid();
             labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
             labelGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -124,7 +123,7 @@ namespace VESCO
 
             Border labelBorder = new Border
             {
-                Height = TrackHeight,
+                Height = _trackHeight,
                 Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(63, 63, 70)),
                 BorderThickness = new Thickness(0, 0, 0, 1),
@@ -180,7 +179,7 @@ namespace VESCO
 
             Border labelBorder = new Border
             {
-                Height = TrackHeight,
+                Height = _trackHeight,
                 Background = new SolidColorBrush(Color.FromRgb(45, 45, 48)),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(63, 63, 70)),
                 BorderThickness = new Thickness(0, 0, 0, 1),
@@ -196,7 +195,7 @@ namespace VESCO
         private void UpdateTimelineHeight()
         {
             int trackCount = _timelineController.Timeline.VideoTracks.Count + _timelineController.Timeline.AudioTracks.Count;
-            double totalHeight = trackCount * (TrackHeight);
+            double totalHeight = trackCount * (_trackHeight);
 
             _timelineCanvas.Height = totalHeight;
             _trackLabelsPanel.Height = totalHeight;
@@ -243,7 +242,7 @@ namespace VESCO
             {
                 _isDragging = true;
                 _dragStartMouse = position;
-                _dragStartFrame = _selectedClip.timelineStart;
+                _dragStartFrame = _selectedClip.TimelineStart;
                 _timelineCanvas.CaptureMouse();
             }
         }
@@ -261,9 +260,8 @@ namespace VESCO
             long totalFrames = _timelineController.GetTotalFramesWithBuffer();
             long deltaFrames = (long)((deltaX / _timelineCanvas.Width) * totalFrames);
 
-            _selectedClip.timelineStart = Math.Max(0, _dragStartFrame + deltaFrames);
+            _selectedClip.TimelineStart = Math.Max(0, _dragStartFrame + deltaFrames);
 
-            // Check if dragged to a different track
             int newVideoTrackIndex = GetVideoTrackIndexFromY(position.Y);
             int newAudioTrackIndex = GetAudioTrackIndexFromY(position.Y);
             if (_selectedClip is VideoClip && newVideoTrackIndex >= 0 && newVideoTrackIndex < _timelineController.Timeline.VideoTracks.Count && newVideoTrackIndex != _selectedTrackIndex)
@@ -275,8 +273,8 @@ namespace VESCO
             else if(_selectedClip is AudioClip && newAudioTrackIndex >= 0 && newAudioTrackIndex < _timelineController.Timeline.AudioTracks.Count && newAudioTrackIndex != _selectedTrackIndex)
             {
                 _timelineController.Timeline.AudioTracks[_selectedTrackIndex].RemoveClip((AudioClip)_selectedClip);
-                _timelineController.Timeline.AudioTracks[newVideoTrackIndex].AddClip((AudioClip)_selectedClip);
-                _selectedTrackIndex = newVideoTrackIndex;
+                _timelineController.Timeline.AudioTracks[newAudioTrackIndex].AddClip((AudioClip)_selectedClip);
+                _selectedTrackIndex = newAudioTrackIndex;
             }
 
             UpdateClipPositions();
@@ -288,7 +286,7 @@ namespace VESCO
             {
                 _isDragging = false;
                 _timelineCanvas.ReleaseMouseCapture();
-                Debug.WriteLine($"Clip dropped: {_selectedClip?.name}");
+                Debug.WriteLine($"Clip dropped: {_selectedClip?.Name}");
             }
         }
 
@@ -335,23 +333,23 @@ namespace VESCO
 
                 foreach (VideoClip clip in track.Clips)
                 {
-                    double clipX = _timelineController.FrameToPosition(clip.timelineStart);
-                    double clipWidth = (clip.length * (_timelineController.Timeline.Fps / clip.source.FPS) / (double)totalFrames) * _timelineCanvas.Width;
+                    double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
+                    double clipWidth = (clip.Length * (_timelineController.Timeline.Fps / clip.Source.FPS) / (double)totalFrames) * _timelineCanvas.Width;
 
                     if (position.X >= clipX && position.X <= clipX + clipWidth)
                     {
                         _selectedClip = clip;
                         _xTextBox.IsEnabled = true;
-                        _xTextBox.Text = clip.x.ToString();
+                        _xTextBox.Text = clip.X.ToString();
                         _yTextBox.IsEnabled = true;
-                        _yTextBox.Text = clip.y.ToString();
+                        _yTextBox.Text = clip.Y.ToString();
                         _scaleTextBox.IsEnabled = true;
-                        _scaleTextBox.Text = clip.scale.ToString("F2");
+                        _scaleTextBox.Text = clip.Scale.ToString("F2");
                         _opacityTextBox.IsEnabled = true;
-                        _opacityTextBox.Text = clip.opacity.ToString("F2");
+                        _opacityTextBox.Text = clip.Opacity.ToString("F2");
                         _selectedTrackIndex = videoTrackIndex;
                         ClipSelected?.Invoke(clip);
-                        Debug.WriteLine($"Selected clip: {clip.name} on track {videoTrackIndex}");
+                        Debug.WriteLine($"Selected clip: {clip.Name} on track {videoTrackIndex}");
                         HighlightSelectedClip();
                         return;
                     }
@@ -372,7 +370,7 @@ namespace VESCO
 
                 foreach (AudioClip clip in track.Clips)
                 {
-                    double clipX = _timelineController.FrameToPosition(clip.timelineStart);
+                    double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
                     long frameDuration = (long)(clip.Duration * _timelineController.Timeline.Fps);
                     double clipWidth = ((double)frameDuration / totalFrames) * _timelineCanvas.Width;
 
@@ -385,7 +383,7 @@ namespace VESCO
                         _selectedClip = clip;
                         _selectedTrackIndex = audioTrackIndex;
                         ClipSelected?.Invoke(clip);
-                        Debug.WriteLine($"Selected clip: {clip.name} on track {audioTrackIndex}");
+                        Debug.WriteLine($"Selected clip: {clip.Name} on track {audioTrackIndex}");
                         HighlightSelectedClip();
                         return;
                     }
@@ -413,18 +411,18 @@ namespace VESCO
 
                 foreach (VideoClip clip in track.Clips.ToList())
                 {
-                    double clipX = _timelineController.FrameToPosition(clip.timelineStart);
-                    double clipWidth = (clip.length * (_timelineController.Timeline.Fps / clip.source.FPS) / (double)totalFrames) * _timelineCanvas.Width;
+                    double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
+                    double clipWidth = (clip.Length * (_timelineController.Timeline.Fps / clip.Source.FPS) / (double)totalFrames) * _timelineCanvas.Width;
 
                     if (position.X >= clipX && position.X <= clipX + clipWidth)
                     {
                         long timelineCutFrame = _timelineController.PositionToFrame(position.X);
-                        long cutFrame = (long)((timelineCutFrame - clip.timelineStart) * (clip.source.FPS / _timelineController.Timeline.Fps));
+                        long cutFrame = (long)((timelineCutFrame - clip.TimelineStart) * (clip.Source.FPS / _timelineController.Timeline.Fps));
                         var(firstPart, secondPart) = clip.SplitAtFrame(cutFrame, _timelineController.Timeline);
 
                         if (firstPart == null || secondPart == null)
                         {
-                            Debug.WriteLine($"Cut failed: Invalid split at frame {cutFrame} for clip {clip.name}");
+                            Debug.WriteLine($"Cut failed: Invalid split at frame {cutFrame} for clip {clip.Name}");
                             return;
                         }
 
@@ -432,7 +430,7 @@ namespace VESCO
                         track.AddClip(firstPart);
                         track.AddClip(secondPart);
                         UpdateClipPositions();
-                        Debug.WriteLine($"Cut clip: {clip.name} at frame {cutFrame}");
+                        Debug.WriteLine($"Cut clip: {clip.Name} at frame {cutFrame}");
                         return;
                     }
                 }
@@ -446,7 +444,7 @@ namespace VESCO
 
                 foreach (AudioClip clip in track.Clips.ToList())
                 {
-                    double clipX = _timelineController.FrameToPosition(clip.timelineStart);
+                    double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
                     long frameDuration = (long)(clip.Duration * _timelineController.Timeline.Fps);
                     double clipWidth = ((double)frameDuration / totalFrames) * _timelineCanvas.Width;
 
@@ -454,11 +452,13 @@ namespace VESCO
                     {
                         long timelineCutFrame = _timelineController.PositionToFrame(position.X);
                         double timelineCutTime = (double)timelineCutFrame / _timelineController.Timeline.Fps;
-                        var (firstPart, secondPart) = clip.SplitAtTime(timelineCutTime);
+                        double clipCutTime = timelineCutTime - (double)clip.TimelineStart / _timelineController.Timeline.Fps;
+                        Debug.WriteLine($"Cutting Audio Clip at time: {clipCutTime}");
+                        var (firstPart, secondPart) = clip.SplitAtTime(clipCutTime, _timelineController.Timeline);
 
                         if (firstPart == null || secondPart == null)
                         {
-                            Debug.WriteLine($"Cut failed: Invalid split at time {timelineCutTime} for clip {clip.name}");
+                            Debug.WriteLine($"Cut failed: Invalid split at time {clipCutTime} for clip {clip.Name}");
                             return;
                         }
 
@@ -466,7 +466,7 @@ namespace VESCO
                         track.AddClip(firstPart);
                         track.AddClip(secondPart);
                         UpdateClipPositions();
-                        Debug.WriteLine($"Cut Audio Clip: {clip.name} at time {timelineCutTime}");
+                        Debug.WriteLine($"Cut Audio Clip: {clip.Name} at time {timelineCutTime}");
                         return;
                     }
                 }
@@ -477,29 +477,29 @@ namespace VESCO
 
         private int GetVideoTrackIndexFromY(double y)
         {
-            return (int)(y / TrackHeight);
+            return (int)(y / _trackHeight);
         }
 
         private int GetAudioTrackIndexFromY(double y)
         {
-            return (int)(y / TrackHeight) - _timelineController.Timeline.VideoTracks.Count;
+            return (int)(y / _trackHeight) - _timelineController.Timeline.VideoTracks.Count;
         }
 
         private double GetVideoTrackY(int trackIndex)
         {
-            return trackIndex * (TrackHeight);
+            return trackIndex * (_trackHeight);
         }
 
         private double GetAudioTrackY(int trackIndex)
         {
-            return (_timelineController.Timeline.VideoTracks.Count + trackIndex) * (TrackHeight);
+            return (_timelineController.Timeline.VideoTracks.Count + trackIndex) * (_trackHeight);
         }
 
         private void DrawVideoClip(VideoClip clip, int trackIndex)
         {
             long totalFrames = _timelineController.GetTotalFramesWithBuffer();
-            double clipX = _timelineController.FrameToPosition(clip.timelineStart);
-            double clipWidth = (clip.length * (_timelineController.Timeline.Fps / clip.source.FPS) / (double)totalFrames) * _timelineCanvas.Width;
+            double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
+            double clipWidth = (clip.Length * (_timelineController.Timeline.Fps / clip.Source.FPS) / (double)totalFrames) * _timelineCanvas.Width;
 
             Color[] trackColors = new[]
             {
@@ -512,14 +512,14 @@ namespace VESCO
             Border rect = new Border
             {
                 Width = Math.Max(4, clipWidth),
-                Height = TrackHeight,
+                Height = _trackHeight,
                 Background = new SolidColorBrush(trackColors[trackIndex % trackColors.Length]),
                 BorderBrush = Brushes.Black,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(3),
                 Child = new TextBlock
                 {
-                    Text = clip.name,
+                    Text = clip.Name,
                     Foreground = Brushes.White,
                     Margin = new Thickness(4, 2, 0, 0)
                 }
@@ -528,14 +528,14 @@ namespace VESCO
             Canvas.SetLeft(rect, clipX);
             Canvas.SetTop(rect, GetVideoTrackY(trackIndex));
 
-            clip.rect = rect;
+            clip.Rect = rect;
             _timelineCanvas.Children.Add(rect);
         }
 
         private void DrawAudioClip(AudioClip clip, int trackIndex)
         {
             long totalFrames = _timelineController.GetTotalFramesWithBuffer();
-            double clipX = _timelineController.FrameToPosition(clip.timelineStart);
+            double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
             long frameDuration = (long)(clip.Duration * _timelineController.Timeline.Fps);
             double clipWidth = ((double)frameDuration / totalFrames) * _timelineCanvas.Width;
             Color[] trackColors = new[]
@@ -548,14 +548,14 @@ namespace VESCO
             Border rect = new Border
             {
                 Width = Math.Max(4, clipWidth),
-                Height = TrackHeight,
+                Height = _trackHeight,
                 Background = new SolidColorBrush(trackColors[trackIndex % trackColors.Length]),
                 BorderBrush = Brushes.Black,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(3),
                 Child = new TextBlock
                 {
-                    Text = clip.name,
+                    Text = clip.Name,
                     Foreground = Brushes.White,
                     Margin = new Thickness(4, 2, 0, 0)
                 }
@@ -567,10 +567,10 @@ namespace VESCO
 
         private void HighlightSelectedClip()
         {
-            if (_selectedClip?.rect != null)
+            if (_selectedClip?.Rect != null)
             {   
                 ClearHighlights();
-                _selectedClip.rect.BorderBrush = Brushes.Red;
+                _selectedClip.Rect.BorderBrush = Brushes.Red;
             }
             else
             {
@@ -605,7 +605,7 @@ namespace VESCO
             {
                 if (_trackLabelsPanel.Children[i] is Border border)
                 {
-                    border.Height = TrackHeight;
+                    border.Height = _trackHeight;
                 }
             }
         }
@@ -614,7 +614,7 @@ namespace VESCO
         {
             if (_selectedClip is VideoClip videoClip)
             {
-                videoClip.x = x;
+                videoClip.X = x;
             }
         }
 
@@ -622,7 +622,7 @@ namespace VESCO
         {
             if (_selectedClip is VideoClip videoClip)
             {
-                videoClip.y = y;
+                videoClip.Y = y;
             }
         }
 
@@ -630,7 +630,7 @@ namespace VESCO
         {
             if (_selectedClip is VideoClip videoClip)
             {
-                videoClip.scale = scale;
+                videoClip.Scale = scale;
             }
         }
 
@@ -638,7 +638,7 @@ namespace VESCO
         {
             if (_selectedClip is VideoClip videoClip)
             {
-                videoClip.opacity = opacity;
+                videoClip.Opacity = opacity;
             }
         }
     }

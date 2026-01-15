@@ -128,7 +128,7 @@ namespace VESCO
             PlayPause.Content = _playheadController.IsPlaying ? "⏸" : "▶";
         }
 
-        private async void OpenVideo_Click(object sender, RoutedEventArgs e)
+        private async void OpenVideoClick(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
             {

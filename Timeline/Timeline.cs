@@ -23,12 +23,21 @@ namespace VESCO.Timeline
             {
                 foreach (VideoClip clip in track.Clips)
                 {
-                    long clipEnd = clip.timelineStart + (long)(clip.length * (Fps / clip.source.FPS));
+                    long clipEnd = clip.TimelineStart + (long)(clip.Length * (Fps / clip.Source.FPS));
                     if (clipEnd > maxFrame)
                         maxFrame = clipEnd;
                 }
             }
 
+            foreach (AudioTrack track in AudioTracks)
+            {
+                foreach (AudioClip clip in track.Clips)
+                {
+                    long clipEnd = clip.TimelineStart + (long)(clip.Duration * Fps);
+                    if (clipEnd > maxFrame)
+                        maxFrame = clipEnd;
+                }
+            }
             return maxFrame;
         }
 
@@ -48,7 +57,7 @@ namespace VESCO.Timeline
 
                 if (trackFrame != null && clip!=null)
                 {
-                    frames.Add(new FrameWrapper(trackFrame, clip.opacity, clip.x, clip.y, clip.scale));
+                    frames.Add(new FrameWrapper(trackFrame, clip.Opacity, clip.X, clip.Y, clip.Scale));
                 }
             }
 
@@ -169,7 +178,6 @@ namespace VESCO.Timeline
         {
             List<float[]> trackAudios = new List<float[]>();
 
-            // Collect audio from all tracks
             foreach (var track in AudioTracks)
             {
                 var audio = track.GetAudioAtFrame(frame, Fps, sampleRate, channels);
@@ -179,7 +187,6 @@ namespace VESCO.Timeline
                 }
             }
 
-            // Mix all tracks together
             if (trackAudios.Count == 0) return null;
             if (trackAudios.Count == 1) return trackAudios[0];
 
@@ -199,7 +206,6 @@ namespace VESCO.Timeline
                 }
             }
 
-            // Normalize to prevent clipping
             float max = mixed.Max(Math.Abs);
             if (max > 1.0f)
             {

@@ -1,11 +1,11 @@
 ﻿using NAudio.Wave;
-using System.Windows.Controls;
+using System.Diagnostics;
 using VESCO.Timeline;
 
 public class AudioClip : Clip
 {
-    public AudioSource Source { get; set; }
-    public double SourceStart { get; set; }
+    public AudioSource Source { get; }
+    public double SourceStart { get; }
     public double Duration { get; set; }
     public double Volume { get; set; } = 1.0;
 
@@ -17,9 +17,9 @@ public class AudioClip : Clip
         Duration = source.Duration - sourceStart;
     }
 
-    public float[] GetAudioAtTimelineFrame(long timelineFrame, double timelineFps, int sampleRate, int channels)
+    public float[]? GetAudioAtTimelineFrame(long timelineFrame, double timelineFps, int sampleRate, int channels)
     {
-        long relativeFrame = timelineFrame - timelineStart;
+        long relativeFrame = timelineFrame - TimelineStart;
         double timeOffset = relativeFrame / timelineFps;
         double sourceTime = SourceStart + timeOffset;
 
@@ -46,22 +46,22 @@ public class AudioClip : Clip
         return buffer;
     }
 
-    public (AudioClip?, AudioClip?) SplitAtTime(double splitTime)
+    public (AudioClip?, AudioClip?) SplitAtTime(double splitTime, Timeline timeline)
     {
-        if (splitTime <= SourceStart || splitTime >= SourceStart + Duration)
+        if (splitTime <= 0 || splitTime >= Duration)
             return (null, null);
 
         var firstPart = new AudioClip(
-            filePath,
+            FilePath,
             SourceStart,
-            timelineStart,
+            TimelineStart,
             Source);
-        firstPart.Duration = splitTime - SourceStart;
+        firstPart.Duration = splitTime;
 
         var secondPart = new AudioClip(
-            filePath,
-            splitTime,
-            timelineStart, // This needs proper calculation
+            FilePath,
+            splitTime + SourceStart,
+            TimelineStart + (long)((splitTime) * timeline.Fps),
             Source);
         secondPart.Duration = Duration - firstPart.Duration;
 

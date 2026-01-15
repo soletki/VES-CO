@@ -20,8 +20,8 @@ namespace VESCO
         private long _currentFrame;
         private bool _isDragging;
         private bool _isPlaying;
-        private DispatcherTimer _playbackTimer;
-        private Stopwatch _playbackStopwatch;
+        private DispatcherTimer ?_playbackTimer;
+        private Stopwatch ?_playbackStopwatch;
         private long _playbackStartFrame;
 
         public bool IsDragging => _isDragging;

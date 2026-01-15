@@ -7,23 +7,21 @@ namespace VESCO
     public partial class ExportWindow : Window
     {
         private Timeline.Timeline _timeline;
-        private CancellationTokenSource _cancellationTokenSource;
+        private CancellationTokenSource ?_cancellationTokenSource;
 
         public ExportWindow(Timeline.Timeline timeline)
         {
             InitializeComponent();
             _timeline = timeline;
 
-            // Set default output path
             OutputPathTextBox.Text = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
                 $"Export_{DateTime.Now:yyyyMMdd_HHmmss}.mp4");
 
-            // Subscribe to resolution change
-            ResolutionComboBox.SelectionChanged += ResolutionComboBox_SelectionChanged;
+            ResolutionComboBox.SelectionChanged += ResolutionComboBoxSelectionChanged;
         }
 
-        private void BrowseOutputPath_Click(object sender, RoutedEventArgs e)
+        private void BrowseOutputPathClick(object sender, RoutedEventArgs e)
         {
             var dialog = new SaveFileDialog
             {
@@ -38,7 +36,7 @@ namespace VESCO
             }
         }
 
-        private void ResolutionComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ResolutionComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ResolutionComboBox.SelectedItem is ComboBoxItem item)
             {
@@ -48,7 +46,7 @@ namespace VESCO
             }
         }
 
-        private void QualitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void QualitySliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (QualityValueText == null) return;
 
@@ -65,7 +63,7 @@ namespace VESCO
             QualityValueText.Text = $"{value} ({quality})";
         }
 
-        private async void Export_Click(object sender, RoutedEventArgs e)
+        private async void ExportClick(object sender, RoutedEventArgs e)
         {
             // Validate output path
             if (string.IsNullOrWhiteSpace(OutputPathTextBox.Text))
@@ -136,7 +134,7 @@ namespace VESCO
             }
         }
 
-        private void Cancel_Click(object sender, RoutedEventArgs e)
+        private void CancelClick(object sender, RoutedEventArgs e)
         {
             // If export is in progress, cancel it
             if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)

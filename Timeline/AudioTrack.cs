@@ -31,13 +31,13 @@ namespace VESCO.Timeline
             // Find clips at this frame
             foreach (var clip in Clips)
             {
-                long clipEndFrame = clip.timelineStart + (long)(clip.Source.Duration * fps);
+                long clipEndFrame = clip.TimelineStart + (long)(clip.Source.Duration * fps);
 
-                if (frame >= clip.timelineStart && frame < clipEndFrame)
+                if (frame >= clip.TimelineStart && frame < clipEndFrame)
                 {
                     // Get audio samples for this frame
                     double frameTime = frame / fps;
-                    double sourceTime = frameTime - (clip.timelineStart / fps) + clip.SourceStart;
+                    double sourceTime = frameTime - (clip.TimelineStart / fps) + clip.SourceStart;
 
                     using var reader = new AudioFileReader(clip.Source.FilePath);
                     reader.CurrentTime = TimeSpan.FromSeconds(sourceTime);

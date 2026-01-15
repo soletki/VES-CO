@@ -47,7 +47,7 @@
                             Background="#3F3F46" 
                             Foreground="White" 
                             BorderBrush="#555"
-                            Click="BrowseOutputPath_Click"/>
+                            Click="BrowseOutputPathClick"/>
                 </Grid>
 
                 <!-- Resolution -->
@@ -138,7 +138,7 @@
                             TickFrequency="1"
                             IsSnapToTickEnabled="True"
                             VerticalAlignment="Center"
-                            ValueChanged="QualitySlider_ValueChanged"/>
+                            ValueChanged="QualitySliderValueChanged"/>
                     <TextBlock x:Name="QualityValueText" 
                                Grid.Column="1"
                                Text="18 (High)" 
@@ -199,7 +199,7 @@
                     Background="#3F3F46" 
                     Foreground="White" 
                     BorderBrush="#555"
-                    Click="Cancel_Click"/>
+                    Click="CancelClick"/>
             <Button x:Name="ExportButton"
                     Content="Export" 
                     Width="100" 
@@ -207,7 +207,7 @@
                     Background="#0E639C" 
                     Foreground="White" 
                     BorderBrush="#0E639C"
-                    Click="Export_Click"/>
+                    Click="ExportClick"/>
         </StackPanel>
     </Grid>
 </Window>

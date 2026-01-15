@@ -17,7 +17,7 @@
         <!-- Top Menu Bar -->
         <Menu Grid.Row="0" Background="#2D2D30" Foreground="White">
             <MenuItem Header="File" Foreground="White">
-                <MenuItem Header="Import Media" Click="OpenVideo_Click" Foreground="#2D2D30"/>
+                <MenuItem Header="Import Media" Click="OpenVideoClick" Foreground="#2D2D30"/>
                 <MenuItem Header="Export Media" Click="ExportVideoClick" Foreground="#2D2D30"/>
                 <Separator/>
                 <MenuItem Header="Exit" Foreground="#2D2D30"/>
@@ -191,7 +191,7 @@
                         <Border Background="#2D2D30" Padding="8">
                             <DockPanel>
                                 <TextBlock Text="Project Files" Foreground="White" FontWeight="Bold"/>
-                                <Button Click="OpenVideo_Click" Content="Import" Width="60" Height="25"
+                                <Button Click="OpenVideoClick" Content="Import" Width="60" Height="25"
                                         DockPanel.Dock="Right" Background="#3F3F46" 
                                         Foreground="White" BorderBrush="#555"/>
                             </DockPanel>
