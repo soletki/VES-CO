@@ -5,6 +5,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using VESCO.Managers;
 using VESCO.Timeline;
 using Xabe.FFmpeg;
 
@@ -14,7 +15,9 @@ namespace VESCO
     {
         private readonly TimelineController _timelineController;
         private readonly PlayheadController _playheadController;
-        private readonly ClipManager _clipManager;
+        private readonly ClipSelectionManager _clipSelectionManager;
+        private readonly ClipDrawManager _clipDrawManager;
+        private readonly TrackManager _trackManager;
         private readonly ToolManager _toolManager;
 
         public ObservableCollection<SourceFile> MediaBin { get; } = new();
@@ -34,17 +37,13 @@ namespace VESCO
                 TimecodeDisplay,
                 FrameCounter,
                 TimelineScrollViewer);
-            _clipManager = new ClipManager(_timelineController, TimelineArea, TrackLabelsPanel, XTextBox, YTextBox, ScaleTextBox, OpacityTextBox);
+            _clipDrawManager = new ClipDrawManager(_timelineController, TimelineArea); 
+            _trackManager = new TrackManager(_timelineController, TimelineArea, TrackLabelsPanel, _clipDrawManager);
+            _clipSelectionManager = new ClipSelectionManager(_timelineController, _clipDrawManager, _trackManager, TimelineArea, XTextBox, YTextBox, ScaleTextBox, OpacityTextBox);
             _toolManager = new ToolManager(SelectTool, CutTool);
-
-            InitializeEventHandlers();
-            _clipManager.InitializeTracks();
+            
+            _trackManager.InitializeTracks();
             _playheadController.UpdateDisplays();
-        }
-
-        private void InitializeEventHandlers()
-        {
-            _clipManager.ClipSelected += (clip) => _playheadController.UpdatePreview();
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -72,14 +71,14 @@ namespace VESCO
                 case Key.Add:
                     if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
                     {
-                        _clipManager.IncreaseTrackHeight();
+                        _trackManager.IncreaseTrackHeight();
                         e.Handled = true;
                     }
                     else if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                     {
                         _timelineController.ZoomIn();
                         _playheadController.UpdatePlayheadPosition();
-                        _clipManager.UpdateClipPositions();
+                        _clipDrawManager.UpdateClipPositions();
                         e.Handled = true;
                     }
 
@@ -88,19 +87,19 @@ namespace VESCO
                 case Key.Subtract:
                     if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
                     {
-                        _clipManager.DecreaseTrackHeight();
+                        _trackManager.DecreaseTrackHeight();
                         e.Handled = true;
                     }
                     else if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                     {
                         _timelineController.ZoomOut();
                         _playheadController.UpdatePlayheadPosition();
-                        _clipManager.UpdateClipPositions();
+                        _clipDrawManager.UpdateClipPositions();
                         e.Handled = true;
                     }
                     break;
                 case Key.Delete:
-                    _clipManager.DeleteSelectedClip();
+                    _clipSelectionManager.DeleteSelectedClip();
                     _playheadController.UpdatePreview();
                     e.Handled = true;
                     break;
@@ -176,7 +175,7 @@ namespace VESCO
                 var source = (VideoSource)e.Data.GetData(typeof(VideoSource));
                 var dropPosition = e.GetPosition(TimelineArea);
 
-                _clipManager.AddVideoClipAtPosition(source, dropPosition.X, dropPosition.Y);
+                _trackManager.AddVideoClipAtPosition(source, dropPosition.X, dropPosition.Y);
                 _playheadController.UpdatePreview();
             }
             else if (e.Data.GetDataPresent(typeof(AudioSource)))
@@ -184,7 +183,7 @@ namespace VESCO
                 var source = (AudioSource)e.Data.GetData(typeof(AudioSource));
                 var dropPosition = e.GetPosition(TimelineArea);
 
-                _clipManager.AddAudioClipAtPosition(source, dropPosition.X, dropPosition.Y);
+                _trackManager.AddAudioClipAtPosition(source, dropPosition.X, dropPosition.Y);
                 _playheadController.UpdatePreview();
             }
         }
@@ -196,16 +195,16 @@ namespace VESCO
 
             if (_toolManager.ActiveTool == ToolType.Select)
             {
-                _clipManager.HandleTimelineClickSelect(position);
+                _clipSelectionManager.HandleTimelineClickSelect(position);
             }
             else if (_toolManager.ActiveTool == ToolType.Cut)
             {
-                _clipManager.HandleTimelineClickCut(position);
+                _clipSelectionManager.HandleTimelineClickCut(position);
             }
             else
             {
                 _playheadController.StartDragging(position);
-                _clipManager.SelectClipAtPosition(position);
+                _clipSelectionManager.SelectClipAtPosition(position);
                 Mouse.Capture(TimelineArea);
             }
         }
@@ -214,9 +213,9 @@ namespace VESCO
         {
             var position = e.GetPosition(TimelineArea);
 
-            if (_clipManager.IsDragging)
+            if (_clipSelectionManager.IsDragging)
             {
-                _clipManager.HandleDrag(position);
+                _clipSelectionManager.HandleDrag(position);
                 _playheadController.UpdatePreview();
             }
             else if (_playheadController.IsDragging)
@@ -227,7 +226,7 @@ namespace VESCO
 
         private void TimelineRelease(object sender, MouseButtonEventArgs e)
         {
-            _clipManager.EndDrag();
+            _clipSelectionManager.EndDrag();
             _playheadController.EndDragging();
             Mouse.Capture(null);
         }
@@ -244,8 +243,8 @@ namespace VESCO
 
         private void AddTrackClick(object sender, RoutedEventArgs e)
         {
-            _clipManager.AddVideoTrack();
-            _clipManager.AddAudioTrack();
+            _trackManager.AddVideoTrack();
+            _trackManager.AddAudioTrack();
         }
 
         private void TimelineScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
@@ -314,7 +313,7 @@ namespace VESCO
             {
                 if (int.TryParse(XTextBox.Text, out int x))
                 {
-                    _clipManager.UpdateSelectedClipX(x);
+                    _clipSelectionManager.UpdateSelectedClipX(x);
                     _playheadController.UpdatePreview();
                 }
             }
@@ -326,7 +325,7 @@ namespace VESCO
             {
                 if (int.TryParse(YTextBox.Text, out int y))
                 {
-                    _clipManager.UpdateSelectedClipY(y);
+                    _clipSelectionManager.UpdateSelectedClipY(y);
                     _playheadController.UpdatePreview();
                 }
             }
@@ -338,7 +337,7 @@ namespace VESCO
             {
                 if (double.TryParse(ScaleTextBox.Text, out double scale))
                 {
-                    _clipManager.UpdateSelectedClipScale(scale);
+                    _clipSelectionManager.UpdateSelectedClipScale(scale);
                     _playheadController.UpdatePreview();
                 }
             }
@@ -350,7 +349,7 @@ namespace VESCO
             {
                 if (double.TryParse(OpacityTextBox.Text, out double opacity))
                 {
-                    _clipManager.UpdateSelectedClipOpacity(opacity);
+                    _clipSelectionManager.UpdateSelectedClipOpacity(opacity);
                     _playheadController.UpdatePreview();
                 }
             }

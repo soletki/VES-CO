@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace VESCO
+namespace VESCO.Managers
 {
     public class TimelineController
     {
@@ -28,13 +28,13 @@ namespace VESCO
         {
             double clampedX = Math.Clamp(xPosition, 0, TimelineCanvas.Width);
             long totalFrames = GetTotalFramesWithBuffer();
-            return (long)((clampedX / TimelineCanvas.Width) * totalFrames);
+            return (long)(clampedX / TimelineCanvas.Width * totalFrames);
         }
 
         public double FrameToPosition(long frame)
         {
             long totalFrames = GetTotalFramesWithBuffer();
-            return (frame / (double)totalFrames) * TimelineCanvas.Width;
+            return frame / (double)totalFrames * TimelineCanvas.Width;
         }
 
         public void ZoomIn()

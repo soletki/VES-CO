@@ -1,7 +1,7 @@
 ﻿using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace VESCO
+namespace VESCO.Managers
 {
     public enum ToolType
     {

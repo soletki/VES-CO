@@ -5,7 +5,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
-namespace VESCO
+namespace VESCO.Managers
 {
     public class PlayheadController
     {
@@ -59,7 +59,7 @@ namespace VESCO
             if (!_isPlaying) return;
 
             long elapsedMs = _playbackStopwatch.ElapsedMilliseconds;
-            long targetFrame = _playbackStartFrame + (long)((elapsedMs / 1000.0) * _timelineController.Timeline.Fps);
+            long targetFrame = _playbackStartFrame + (long)(elapsedMs / 1000.0 * _timelineController.Timeline.Fps);
 
             _currentFrame = targetFrame;
 
@@ -170,8 +170,8 @@ namespace VESCO
         public void UpdatePlayheadPosition()
         {
             double x = _timelineController.FrameToPosition(_currentFrame) - _timelineScrollViewer.HorizontalOffset;
-            if (x <= -10) _playheadCanvas.Visibility = System.Windows.Visibility.Hidden;
-            else _playheadCanvas.Visibility = System.Windows.Visibility.Visible;
+            if (x <= -10) _playheadCanvas.Visibility = Visibility.Hidden;
+            else _playheadCanvas.Visibility = Visibility.Visible;
                 Canvas.SetLeft(_playheadCanvas, x);
         }
 
@@ -187,7 +187,7 @@ namespace VESCO
             int frames = (int)(_currentFrame % fps);
             int totalSeconds = (int)(_currentFrame / fps);
             int seconds = totalSeconds % 60;
-            int minutes = (totalSeconds / 60) % 60;
+            int minutes = totalSeconds / 60 % 60;
             int hours = totalSeconds / 3600;
 
             _timecodeDisplay.Text = $"{hours:D2}:{minutes:D2}:{seconds:D2}:{frames:D2}";
