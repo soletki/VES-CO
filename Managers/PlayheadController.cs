@@ -14,12 +14,16 @@ namespace VESCO.Managers
         private readonly TextBlock _timecodeDisplay;
         private readonly TextBlock _frameCounter;
         private readonly ScrollViewer _timelineScrollViewer;
+        private readonly Dispatcher _dispatcher;
         private long _currentFrame;
         private bool _isDragging;
         private bool _isPlaying;
-        private DispatcherTimer ?_playbackTimer;
-        private Stopwatch ?_playbackStopwatch;
+        private Stopwatch? _playbackStopwatch;
         private long _playbackStartFrame;
+        private CancellationTokenSource? _previewCts;
+        private CancellationTokenSource? _playbackCts;
+        private readonly object _playbackLock = new();
+        private readonly object _previewLock = new();
 
         public bool IsDragging => _isDragging;
         public bool IsPlaying => _isPlaying;
@@ -35,40 +39,57 @@ namespace VESCO.Managers
             _previewImage = previewImage;
             _timecodeDisplay = timecodeDisplay;
             _frameCounter = frameCounter;
+            _dispatcher = Dispatcher.CurrentDispatcher;
 
-            InitializePlaybackTimer();
-        }
-
-        private void InitializePlaybackTimer()
-        {
-            _playbackTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(1000.0 / _timelineController.Timeline.Fps)
-            };
-            _playbackTimer.Tick += PlaybackTimer_Tick;
             _playbackStopwatch = new Stopwatch();
         }
 
-        private void PlaybackTimer_Tick(object sender, EventArgs e)
+        private async void RunPlaybackLoop(CancellationToken cancellationToken)
         {
-            if (!_isPlaying) return;
+            double frameIntervalMs = 1000.0 / _timelineController.Timeline.Fps;
 
-            long elapsedMs = _playbackStopwatch.ElapsedMilliseconds;
-            long targetFrame = _playbackStartFrame + (long)(elapsedMs / 1000.0 * _timelineController.Timeline.Fps);
-
-            _currentFrame = targetFrame;
-
-            long maxFrame = _timelineController.GetTotalFramesWithBuffer();
-            if (_currentFrame >= maxFrame)
+            try
             {
-                Stop();
-                _currentFrame = maxFrame - 1;
-            }
+                while (!cancellationToken.IsCancellationRequested && _isPlaying)
+                {
+                    lock (_playbackLock)
+                    {
+                        if (!_isPlaying)
+                            break;
 
-            UpdatePlayheadPosition();
-            AutoScrollIfNeeded();
-            UpdatePreview();
-            UpdateDisplays();
+                        long elapsedMs = _playbackStopwatch.ElapsedMilliseconds;
+                        long targetFrame = _playbackStartFrame + (long)(elapsedMs / 1000.0 * _timelineController.Timeline.Fps);
+
+                        _currentFrame = targetFrame;
+
+                        long maxFrame = _timelineController.GetTotalFramesWithBuffer();
+                        if (_currentFrame >= maxFrame)
+                        {
+                            _isPlaying = false;
+                            _currentFrame = maxFrame - 1;
+                            _playbackStopwatch.Stop();
+                        }
+                    }
+
+                    // Dispatch UI updates to the UI thread
+                    _dispatcher.Invoke(() =>
+                    {
+                        if (_isPlaying)
+                        {
+                            UpdatePlayheadPosition();
+                            AutoScrollIfNeeded();
+                            UpdatePreview();
+                            UpdateDisplays();
+                        }
+                    });
+
+                    await Task.Delay((int)frameIntervalMs, cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Debug.WriteLine("Playback loop cancelled");
+            }
         }
 
         private void AutoScrollIfNeeded()
@@ -110,34 +131,51 @@ namespace VESCO.Managers
 
         public void Play()
         {
-            if (_isPlaying) return;
+            lock (_playbackLock)
+            {
+                if (_isPlaying) return;
 
-            _isPlaying = true;
-            _playbackStartFrame = _currentFrame;
-            _playbackStopwatch.Restart();
-            _playbackTimer.Start();
-            Debug.WriteLine("Playback started");
+                _isPlaying = true;
+                _playbackStartFrame = _currentFrame;
+                _playbackStopwatch.Restart();
+                
+                _playbackCts = new CancellationTokenSource();
+                _ = Task.Run(() => RunPlaybackLoop(_playbackCts.Token));
+                
+                Debug.WriteLine("Playback started");
+            }
         }
 
         public void Pause()
         {
-            if (!_isPlaying) return;
+            lock (_playbackLock)
+            {
+                if (!_isPlaying) return;
 
-            _isPlaying = false;
-            _playbackTimer.Stop();
-            _playbackStopwatch.Stop();
-            Debug.WriteLine("Playback paused");
+                _isPlaying = false;
+                _playbackStopwatch.Stop();
+                _playbackCts?.Cancel();
+                Debug.WriteLine("Playback paused");
+            }
         }
 
         public void Stop()
         {
-            _isPlaying = false;
-            _playbackTimer.Stop();
-            _playbackStopwatch.Stop();
-            _currentFrame = 0;
-            UpdatePlayheadPosition();
-            UpdatePreview();
-            UpdateDisplays();
+            lock (_playbackLock)
+            {
+                _isPlaying = false;
+                _playbackStopwatch.Stop();
+                _playbackCts?.Cancel();
+                _currentFrame = 0;
+            }
+
+            _dispatcher.Invoke(() =>
+            {
+                UpdatePlayheadPosition();
+                UpdatePreview();
+                UpdateDisplays();
+            });
+            
             Debug.WriteLine("Playback stopped");
         }
 
@@ -167,7 +205,7 @@ namespace VESCO.Managers
             double x = _timelineController.FrameToPosition(_currentFrame) - _timelineScrollViewer.HorizontalOffset;
             if (x <= -10) _playheadCanvas.Visibility = Visibility.Hidden;
             else _playheadCanvas.Visibility = Visibility.Visible;
-                Canvas.SetLeft(_playheadCanvas, x);
+            Canvas.SetLeft(_playheadCanvas, x);
         }
 
         public void UpdatePreview()

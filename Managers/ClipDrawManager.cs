@@ -105,6 +105,7 @@ namespace VESCO.Managers
                     Margin = new Thickness(4, 2, 0, 0)
                 }
             };
+            clip.Rect = rect;
             Canvas.SetLeft(rect, clipX);
             Canvas.SetTop(rect, GetAudioTrackY(trackIndex));
             _timelineCanvas.Children.Add(rect);
@@ -135,7 +136,7 @@ namespace VESCO.Managers
 
         public void HighlightClip(Clip? clip)
         {
-            if (clip == null || clip?.Rect != null)
+            if (clip != null && clip?.Rect != null)
             {
                 ClearHighlights();
                 clip.Rect.BorderBrush = Brushes.Red;

@@ -212,7 +212,8 @@ namespace VESCO.Managers
                 source.FilePath,
                 sourceStart: 0,
                 timelineStart: startFrame,
-                source: source);
+                source: source,
+                timelineFps: _timelineController.Timeline.Fps);
 
             _timelineController.Timeline.VideoTracks[trackIndex].AddClip(clip);
             _clipDrawManager.UpdateClipPositions();
@@ -245,7 +246,13 @@ namespace VESCO.Managers
 
         public void ClearTracks()
         {
-            _timelineController.Timeline.VideoTracks.Clear();
+            for(int i=0;i< _timelineController.Timeline.VideoTracks.Count; i++) { 
+                for(int j=0;j< _timelineController.Timeline.VideoTracks[i].Clips.Count; j++)
+                {
+                    _timelineController.Timeline.VideoTracks[i].Clips[j].Dispose();
+                }
+            }
+            
             _timelineController.Timeline.AudioTracks.Clear();
             InitializeTracks();
             UpdateLabels();

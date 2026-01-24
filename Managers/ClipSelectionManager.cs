@@ -104,6 +104,7 @@ namespace VESCO.Managers
             int newAudioTrackIndex = _trackManager.GetAudioTrackIndexFromY(position.Y);
             if (_selectedClip is VideoClip && newVideoTrackIndex >= 0 && newVideoTrackIndex < _timelineController.Timeline.VideoTracks.Count && newVideoTrackIndex != _selectedTrackIndex)
             {
+                
                 _timelineController.Timeline.VideoTracks[_selectedTrackIndex].RemoveClip((VideoClip)_selectedClip);
                 _timelineController.Timeline.VideoTracks[newVideoTrackIndex].AddClip((VideoClip)_selectedClip);
                 _selectedTrackIndex = newVideoTrackIndex;

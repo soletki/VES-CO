@@ -52,7 +52,7 @@ namespace VESCO
 
             if(Keyboard.FocusedElement is TextBox)
                 return;
-            switch (e.Key)
+            switch (e.Key) 
             {
                 case Key.Space:
                     _playheadController.TogglePlayback();
@@ -146,7 +146,7 @@ namespace VESCO
                     for (int i = 0; i < audioStream.Count; i++)
                     {
                         var conversion = Xabe.FFmpeg.FFmpeg.Conversions.New()
-                            .AddStream(audioStream)
+                            .AddStream(audioStream[i])
                             .SetOutput(tempDir + $"_{i}.wav")
                             .SetOverwriteOutput(true);
 
