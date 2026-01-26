@@ -33,8 +33,7 @@ namespace VESCO.Timeline
         }
 
         public void RemoveClip(VideoClip clip)
-        {
-            clip.Dispose();
+        { 
             Clips.Remove(clip);
         }
 

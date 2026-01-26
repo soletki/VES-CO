@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using VESCO.Timeline;
 
 namespace VESCO.Managers
@@ -8,11 +9,12 @@ namespace VESCO.Managers
     public class ClipSelectionManager
     {
 
-        private Clip ?_selectedClip;
+        private Clip? _selectedClip;
         private int _selectedTrackIndex = -1;
         private TimelineController _timelineController;
         private ClipDrawManager _clipDrawManager;
         private TrackManager _trackManager;
+        private SnapManager _snapManager;
         private bool _isDragging = false;
         private Point _dragStartMouse;
         private long _dragStartFrame;
@@ -56,16 +58,22 @@ namespace VESCO.Managers
             _scaleSlider = scaleSlider;
             _opacityTextBox = opacityTextBox;
             _opacitySlider = opacitySlider;
+            _snapManager = new SnapManager(timelineController);
         }
 
         public void DeleteSelectedClip()
         {
             if (_selectedClip != null && _selectedTrackIndex >= 0)
             {
-                if (_selectedClip is AudioClip)
-                    _timelineController.Timeline.AudioTracks[_selectedTrackIndex].RemoveClip((AudioClip)_selectedClip);
-                else
-                    _timelineController.Timeline.VideoTracks[_selectedTrackIndex].RemoveClip((VideoClip)_selectedClip);
+                if (_selectedClip is AudioClip audioClip)
+                {
+                    _timelineController.Timeline.AudioTracks[_selectedTrackIndex].RemoveClip(audioClip);
+                }
+                else if (_selectedClip is VideoClip videoClip)
+                {
+                    _timelineController.Timeline.VideoTracks[_selectedTrackIndex].RemoveClip(videoClip);
+                    videoClip.Dispose();
+                }
                 _selectedClip = null;
                 _selectedTrackIndex = -1;
                 _clipDrawManager.UpdateClipPositions();
@@ -98,21 +106,28 @@ namespace VESCO.Managers
             long totalFrames = _timelineController.GetTotalFramesWithBuffer();
             long deltaFrames = (long)(deltaX / _timelineCanvas.Width * totalFrames);
 
-            _selectedClip.TimelineStart = Math.Max(0, _dragStartFrame + deltaFrames);
+            long targetFrame = Math.Max(0, _dragStartFrame + deltaFrames);
+            
+            // Check if Shift key is pressed to disable snapping
+            bool enableSnapping = (Keyboard.Modifiers & ModifierKeys.Shift) == 0;
+            long snappedFrame = _snapManager.GetSnappedFrame(_selectedClip, _selectedTrackIndex, targetFrame, enableSnapping);
+
+            _selectedClip.TimelineStart = snappedFrame;
 
             int newVideoTrackIndex = _trackManager.GetVideoTrackIndexFromY(position.Y);
             int newAudioTrackIndex = _trackManager.GetAudioTrackIndexFromY(position.Y);
             if (_selectedClip is VideoClip && newVideoTrackIndex >= 0 && newVideoTrackIndex < _timelineController.Timeline.VideoTracks.Count && newVideoTrackIndex != _selectedTrackIndex)
             {
-                
-                _timelineController.Timeline.VideoTracks[_selectedTrackIndex].RemoveClip((VideoClip)_selectedClip);
-                _timelineController.Timeline.VideoTracks[newVideoTrackIndex].AddClip((VideoClip)_selectedClip);
+                VideoClip videoClip = (VideoClip)_selectedClip;
+                _timelineController.Timeline.VideoTracks[_selectedTrackIndex].RemoveClip(videoClip);
+                _timelineController.Timeline.VideoTracks[newVideoTrackIndex].AddClip(videoClip);
                 _selectedTrackIndex = newVideoTrackIndex;
             }
             else if (_selectedClip is AudioClip && newAudioTrackIndex >= 0 && newAudioTrackIndex < _timelineController.Timeline.AudioTracks.Count && newAudioTrackIndex != _selectedTrackIndex)
             {
-                _timelineController.Timeline.AudioTracks[_selectedTrackIndex].RemoveClip((AudioClip)_selectedClip);
-                _timelineController.Timeline.AudioTracks[newAudioTrackIndex].AddClip((AudioClip)_selectedClip);
+                AudioClip audioClip = (AudioClip)_selectedClip;
+                _timelineController.Timeline.AudioTracks[_selectedTrackIndex].RemoveClip(audioClip);
+                _timelineController.Timeline.AudioTracks[newAudioTrackIndex].AddClip(audioClip);
                 _selectedTrackIndex = newAudioTrackIndex;
             }
 
@@ -126,6 +141,7 @@ namespace VESCO.Managers
             {
                 _isDragging = false;
                 _timelineCanvas.ReleaseMouseCapture();
+                _snapManager.ResetSnapState();
                 Debug.WriteLine($"Clip dropped: {_selectedClip?.Name}");
             }
         }
@@ -270,6 +286,7 @@ namespace VESCO.Managers
                         }
 
                         track.RemoveClip(clip);
+                        clip.Dispose();
                         track.AddClip(firstPart);
                         track.AddClip(secondPart);
                         _clipDrawManager.UpdateClipPositions();
@@ -351,4 +368,4 @@ namespace VESCO.Managers
 
 
     }
-    }
+}
