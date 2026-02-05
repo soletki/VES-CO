@@ -19,13 +19,13 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore VESCO/VESCO.csproj
+      run: dotnet restore VESCO.csproj
 
     - name: Build
-      run: dotnet build VESCO/VESCO.csproj -c Release --no-restore
+      run: dotnet build VESCO.csproj -c Release --no-restore
 
     - name: Publish
-      run: dotnet publish VESCO/VESCO.csproj `
+      run: dotnet publish VESCO.csproj `
             -c Release `
             -r win-x64 `
             --self-contained false `
