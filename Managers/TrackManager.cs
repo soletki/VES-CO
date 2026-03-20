@@ -24,6 +24,7 @@ namespace VESCO.Managers
             _timelineCanvas = timelineCanvas;
             _trackLabelsPanel = trackLabelsPanel;
             _clipDrawManager = clipDrawManager;
+            _clipDrawManager.SetTrackHeight(_trackHeight);
         }
 
         private void UpdateTimelineHeight()
@@ -38,7 +39,7 @@ namespace VESCO.Managers
         public void IncreaseTrackHeight()
         {
             _trackHeight += 10;
-
+            _clipDrawManager.SetTrackHeight(_trackHeight);
             UpdateTimelineHeight();
             _clipDrawManager.UpdateClipPositions();
             UpdateLabelsHeight();
@@ -47,7 +48,7 @@ namespace VESCO.Managers
         public void DecreaseTrackHeight()
         {
             _trackHeight = Math.Max(10, _trackHeight - 10);
-
+            _clipDrawManager.SetTrackHeight(_trackHeight);
             UpdateTimelineHeight();
             _clipDrawManager.UpdateClipPositions();
             UpdateLabelsHeight();
@@ -173,6 +174,7 @@ namespace VESCO.Managers
 
         private void RefreshTimelineLayout()
         {
+            _clipDrawManager.SetTrackHeight(_trackHeight);
             UpdateLabels();
             UpdateTimelineHeight();
             _clipDrawManager.UpdateClipPositions();

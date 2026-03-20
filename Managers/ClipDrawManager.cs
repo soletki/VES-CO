@@ -9,7 +9,7 @@ namespace VESCO.Managers
     {
         private readonly TimelineController _timelineController;
         private readonly Canvas _timelineCanvas;
-        private readonly int _trackHeight = 40;
+        private int _trackHeight = 40;
         private static readonly Color[] VideoTrackColors =
         [
             Color.FromRgb(70, 130, 180),
@@ -107,6 +107,11 @@ namespace VESCO.Managers
                 ClearHighlights();
                 clip.Rect.BorderBrush = Brushes.Red;
             }
+        }
+
+        public void SetTrackHeight(int trackHeight)
+        {
+            _trackHeight = Math.Max(10, trackHeight);
         }
 
         public void ClearHighlights()
