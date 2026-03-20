@@ -215,7 +215,6 @@ namespace VESCO.Managers
 
         public void UpdateDisplays()
         {
-            // Update timecode (HH:MM:SS:FF)
             double fps = _timelineController.Timeline.Fps;
             int frames = (int)(_currentFrame % fps);
             int totalSeconds = (int)(_currentFrame / fps);
@@ -225,7 +224,6 @@ namespace VESCO.Managers
 
             _timecodeDisplay.Text = $"{hours:D2}:{minutes:D2}:{seconds:D2}:{frames:D2}";
 
-            // Update frame counter
             long totalFrames = _timelineController.Timeline.GetTotalFrames();
             _frameCounter.Text = $"{_currentFrame} / {totalFrames}";
         }
