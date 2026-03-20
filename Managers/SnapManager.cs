@@ -29,8 +29,8 @@ namespace VESCO.Managers
             Clip? bestSnapTarget = null;
 
             long draggedClipLength = GetClipLength(draggedClip, draggedTrackIndex);
+            long draggedClipEnd = targetFrame + draggedClipLength;
 
-            // Check all video tracks
             for (int trackIndex = 0; trackIndex < _timelineController.Timeline.VideoTracks.Count; trackIndex++)
             {
                 var track = _timelineController.Timeline.VideoTracks[trackIndex];
@@ -41,29 +41,19 @@ namespace VESCO.Managers
 
                     long otherClipStart = clip.TimelineStart;
                     long otherClipEnd = otherClipStart + (long)(clip.Length * (_timelineController.Timeline.Fps / clip.Source.FPS));
-
-                    // Snap dragged clip end to other clip start
-                    long draggedClipEnd = targetFrame + draggedClipLength;
-                    long distanceToStart = Math.Abs(draggedClipEnd - otherClipStart);
-                    if (distanceToStart < minDistance && distanceToStart <= SnapThresholdFrames)
-                    {
-                        minDistance = distanceToStart;
-                        snappedFrame = otherClipStart - draggedClipLength;
-                        bestSnapTarget = clip;
-                    }
-
-                    // Snap dragged clip start to other clip end
-                    long distanceToEnd = Math.Abs(targetFrame - otherClipEnd);
-                    if (distanceToEnd < minDistance && distanceToEnd <= SnapThresholdFrames)
-                    {
-                        minDistance = distanceToEnd;
-                        snappedFrame = otherClipEnd;
-                        bestSnapTarget = clip;
-                    }
+                    EvaluateSnapCandidate(
+                        clip,
+                        targetFrame,
+                        draggedClipLength,
+                        draggedClipEnd,
+                        otherClipStart,
+                        otherClipEnd,
+                        ref snappedFrame,
+                        ref minDistance,
+                        ref bestSnapTarget);
                 }
             }
 
-            // Check all audio tracks
             for (int trackIndex = 0; trackIndex < _timelineController.Timeline.AudioTracks.Count; trackIndex++)
             {
                 var track = _timelineController.Timeline.AudioTracks[trackIndex];
@@ -74,29 +64,19 @@ namespace VESCO.Managers
 
                     long otherClipStart = clip.TimelineStart;
                     long otherClipEnd = otherClipStart + (long)(clip.Duration * _timelineController.Timeline.Fps);
-
-                    // Snap dragged clip end to other clip start
-                    long draggedClipEnd = targetFrame + draggedClipLength;
-                    long distanceToStart = Math.Abs(draggedClipEnd - otherClipStart);
-                    if (distanceToStart < minDistance && distanceToStart <= SnapThresholdFrames)
-                    {
-                        minDistance = distanceToStart;
-                        snappedFrame = otherClipStart - draggedClipLength;
-                        bestSnapTarget = clip;
-                    }
-
-                    // Snap dragged clip start to other clip end
-                    long distanceToEnd = Math.Abs(targetFrame - otherClipEnd);
-                    if (distanceToEnd < minDistance && distanceToEnd <= SnapThresholdFrames)
-                    {
-                        minDistance = distanceToEnd;
-                        snappedFrame = otherClipEnd;
-                        bestSnapTarget = clip;
-                    }
+                    EvaluateSnapCandidate(
+                        clip,
+                        targetFrame,
+                        draggedClipLength,
+                        draggedClipEnd,
+                        otherClipStart,
+                        otherClipEnd,
+                        ref snappedFrame,
+                        ref minDistance,
+                        ref bestSnapTarget);
                 }
             }
 
-            // If we found a snap target, sticky snap to it
             if (minDistance <= SnapThresholdFrames && bestSnapTarget != null)
             {
                 _snapTargetClip = bestSnapTarget;
@@ -105,7 +85,6 @@ namespace VESCO.Managers
                 return Math.Max(0, snappedFrame);
             }
 
-            // If we were previously snapped and are still close enough, maintain snap
             if (_snapTargetClip != null && _snapTargetFrame >= 0)
             {
                 long distanceFromLastSnap = Math.Abs(targetFrame - _snapTargetFrame);
@@ -137,6 +116,34 @@ namespace VESCO.Managers
             }
 
             return 0;
+        }
+
+        private static void EvaluateSnapCandidate(
+            Clip candidate,
+            long targetFrame,
+            long draggedClipLength,
+            long draggedClipEnd,
+            long candidateStart,
+            long candidateEnd,
+            ref long snappedFrame,
+            ref long minDistance,
+            ref Clip? bestSnapTarget)
+        {
+            long distanceToStart = Math.Abs(draggedClipEnd - candidateStart);
+            if (distanceToStart < minDistance && distanceToStart <= SnapThresholdFrames)
+            {
+                minDistance = distanceToStart;
+                snappedFrame = candidateStart - draggedClipLength;
+                bestSnapTarget = candidate;
+            }
+
+            long distanceToEnd = Math.Abs(targetFrame - candidateEnd);
+            if (distanceToEnd < minDistance && distanceToEnd <= SnapThresholdFrames)
+            {
+                minDistance = distanceToEnd;
+                snappedFrame = candidateEnd;
+                bestSnapTarget = candidate;
+            }
         }
     }
 }

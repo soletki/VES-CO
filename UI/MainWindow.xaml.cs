@@ -76,9 +76,7 @@ namespace VESCO
                     }
                     else if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                     {
-                        _timelineController.ZoomIn();
-                        _playheadController.UpdatePlayheadPosition();
-                        _clipDrawManager.UpdateClipPositions();
+                        ApplyZoom(_timelineController.ZoomIn);
                         e.Handled = true;
                     }
 
@@ -92,9 +90,7 @@ namespace VESCO
                     }
                     else if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                     {
-                        _timelineController.ZoomOut();
-                        _playheadController.UpdatePlayheadPosition();
-                        _clipDrawManager.UpdateClipPositions();
+                        ApplyZoom(_timelineController.ZoomOut);
                         e.Handled = true;
                     }
                     break;
@@ -170,19 +166,17 @@ namespace VESCO
 
         private void TimelineDrop(object sender, DragEventArgs e)
         {
+            var dropPosition = e.GetPosition(TimelineArea);
+
             if (e.Data.GetDataPresent(typeof(VideoSource)))
             {
                 var source = (VideoSource)e.Data.GetData(typeof(VideoSource));
-                var dropPosition = e.GetPosition(TimelineArea);
-
                 _trackManager.AddVideoClipAtPosition(source, dropPosition.X, dropPosition.Y);
                 _playheadController.UpdatePreview();
             }
             else if (e.Data.GetDataPresent(typeof(AudioSource)))
             {
                 var source = (AudioSource)e.Data.GetData(typeof(AudioSource));
-                var dropPosition = e.GetPosition(TimelineArea);
-
                 _trackManager.AddAudioClipAtPosition(source, dropPosition.X, dropPosition.Y);
                 _playheadController.UpdatePreview();
             }
@@ -284,20 +278,12 @@ namespace VESCO
 
         private void SeekStartClick(object sender, RoutedEventArgs e)
         {
-            _playheadController.Pause();
-            _playheadController.UpdateCurrentFrame(0);
-            _playheadController.UpdatePlayheadPosition();
-            _playheadController.UpdatePreview();
-            _playheadController.UpdateDisplays();
+            SeekToFrame(0);
         }
 
         private void SeekEndClick(object sender, RoutedEventArgs e)
         {
-            _playheadController.Pause();
-            _playheadController.UpdateCurrentFrame(_timelineController.Timeline.GetTotalFrames() - 1);
-            _playheadController.UpdatePlayheadPosition();
-            _playheadController.UpdatePreview();
-            _playheadController.UpdateDisplays();
+            SeekToFrame(_timelineController.Timeline.GetTotalFrames() - 1);
         }
 
         private void ExportVideoClick(object sender, RoutedEventArgs e)
@@ -309,96 +295,42 @@ namespace VESCO
 
         private void XTextBoxKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                if (int.TryParse(XTextBox.Text, out int x))
-                {
-                    _clipSelectionManager.UpdateSelectedClipX(x);
-                    _playheadController.UpdatePreview();
-                }
-            }
+            HandleIntegerTextBoxEnter(e, XTextBox, value => _clipSelectionManager.UpdateSelectedClipX(value));
         }
 
         private void YTextBoxKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                if (int.TryParse(YTextBox.Text, out int y))
-                {
-                    _clipSelectionManager.UpdateSelectedClipY(y);
-                    _playheadController.UpdatePreview();
-                }
-            }
+            HandleIntegerTextBoxEnter(e, YTextBox, value => _clipSelectionManager.UpdateSelectedClipY(value));
         }
 
         private void ScaleTextBoxKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                if (double.TryParse(ScaleTextBox.Text, out double scale))
-                {
-                    _clipSelectionManager.UpdateSelectedClipScale(scale);
-                    ScaleSlider.Value = scale;
-                    _playheadController.UpdatePreview();
-                }
-            }
+            HandleDoubleTextBoxEnter(e, ScaleTextBox, value => _clipSelectionManager.UpdateSelectedClipScale(value), ScaleSlider, "F2");
         }
 
         private void OpacityTextBoxKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                if (double.TryParse(OpacityTextBox.Text, out double opacity))
-                {
-                    _clipSelectionManager.UpdateSelectedClipOpacity(opacity);
-                    OpacitySlider.Value = opacity;
-                    _playheadController.UpdatePreview();
-                }
-            }
+            HandleDoubleTextBoxEnter(e, OpacityTextBox, value => _clipSelectionManager.UpdateSelectedClipOpacity(value), OpacitySlider, "F2");
         }
 
         private void OpacitySliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (OpacityTextBox != null)
-            {
-                double opacity = e.NewValue;
-                OpacityTextBox.Text = opacity.ToString("F2");
-                _clipSelectionManager.UpdateSelectedClipOpacity(opacity);
-                _playheadController.UpdatePreview();
-            }
+            HandleSliderValueChanged(OpacityTextBox, e.NewValue, "F2", value => _clipSelectionManager.UpdateSelectedClipOpacity(value));
         }
 
         private void ScaleSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (ScaleTextBox != null)
-            {
-                double scale = e.NewValue;
-                ScaleTextBox.Text = scale.ToString("F2");
-                _clipSelectionManager.UpdateSelectedClipScale(scale);
-                _playheadController.UpdatePreview();
-            }
+            HandleSliderValueChanged(ScaleTextBox, e.NewValue, "F2", value => _clipSelectionManager.UpdateSelectedClipScale(value));
         }
 
         private void XSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (OpacityTextBox != null)
-            {
-                double x = e.NewValue;
-                XTextBox.Text = x.ToString("F0");
-                _clipSelectionManager.UpdateSelectedClipX((int)x);
-                _playheadController.UpdatePreview();
-            }
+            HandleSliderValueChanged(XTextBox, e.NewValue, "F0", value => _clipSelectionManager.UpdateSelectedClipX((int)value));
         }
 
         private void YSliderValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (OpacityTextBox != null)
-            {
-                double y = e.NewValue;
-                YTextBox.Text = y.ToString("F0");
-                _clipSelectionManager.UpdateSelectedClipY((int)y);
-                _playheadController.UpdatePreview();
-            }
+            HandleSliderValueChanged(YTextBox, e.NewValue, "F0", value => _clipSelectionManager.UpdateSelectedClipY((int)value));
         }
 
         private void Exit(object sender, RoutedEventArgs e)
@@ -409,6 +341,88 @@ namespace VESCO
         private void ClearTimeline(object sender, RoutedEventArgs e)
         {
             _trackManager.ClearTracks();
+        }
+
+        private void ApplyZoom(Action zoomAction)
+        {
+            zoomAction();
+            _playheadController.UpdatePlayheadPosition();
+            _clipDrawManager.UpdateClipPositions();
+        }
+
+        private void SeekToFrame(long frame)
+        {
+            _playheadController.Pause();
+            _playheadController.UpdateCurrentFrame(frame);
+            _playheadController.UpdatePlayheadPosition();
+            _playheadController.UpdatePreview();
+            _playheadController.UpdateDisplays();
+        }
+
+        private void HandleIntegerTextBoxEnter(KeyEventArgs e, TextBox textBox, Action<int> applyValue)
+        {
+            if (!ManagersInitialized())
+            {
+                return;
+            }
+
+            if (e.Key != Key.Enter)
+            {
+                return;
+            }
+
+            if (int.TryParse(textBox.Text, out int value))
+            {
+                applyValue(value);
+                _playheadController.UpdatePreview();
+            }
+        }
+
+        private void HandleDoubleTextBoxEnter(KeyEventArgs e, TextBox textBox, Action<double> applyValue, Slider? slider, string format)
+        {
+            if (!ManagersInitialized())
+            {
+                return;
+            }
+
+            if (e.Key != Key.Enter)
+            {
+                return;
+            }
+
+            if (double.TryParse(textBox.Text, out double value))
+            {
+                applyValue(value);
+                if (slider != null)
+                {
+                    slider.Value = value;
+                }
+
+                textBox.Text = value.ToString(format);
+                _playheadController.UpdatePreview();
+            }
+        }
+
+        private void HandleSliderValueChanged(TextBox? textBox, double value, string format, Action<double> applyValue)
+        {
+            if (!ManagersInitialized())
+            {
+                return;
+            }
+
+            if (textBox == null)
+            {
+                return;
+            }
+
+            textBox.Text = value.ToString(format);
+            applyValue(value);
+            _playheadController.UpdatePreview();
+        }
+
+        private bool ManagersInitialized()
+        {
+            return _clipSelectionManager != null && _playheadController != null;
         }
     }
 }

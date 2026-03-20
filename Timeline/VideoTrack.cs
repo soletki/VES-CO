@@ -20,15 +20,6 @@ namespace VESCO.Timeline
             if (clip == null)
                 return;
 
-            long newClipStart = clip.TimelineStart;
-            long newClipEnd = (long)(clip.TimelineStart + clip.Length * (Fps / clip.Source.FPS));
-
-            foreach (var existingClip in Clips)
-            {
-                long existingClipStart = existingClip.TimelineStart;
-                long existingClipEnd = (long)(existingClip.TimelineStart + existingClip.Length * (Fps / existingClip.Source.FPS));
-            }
-
             Clips.Add(clip);
         }
 
@@ -52,7 +43,7 @@ namespace VESCO.Timeline
             return null;
         }
 
-        public VideoClip getClipAt(long timelineFrame)
+        public VideoClip? GetClipAt(long timelineFrame)
         {
             foreach (var clip in Clips)
             {
@@ -63,6 +54,11 @@ namespace VESCO.Timeline
                 }
             }
             return null;
+        }
+
+        public VideoClip? getClipAt(long timelineFrame)
+        {
+            return GetClipAt(timelineFrame);
         }
     }
 }

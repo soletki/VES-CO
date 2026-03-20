@@ -53,7 +53,7 @@ namespace VESCO.Timeline
             foreach (var track in VideoTracks)
             {
                 BitmapSource trackFrame = track.GetFrameAt(frame, PreviewScale);
-                VideoClip clip = track.getClipAt(frame);
+                VideoClip? clip = track.GetClipAt(frame);
 
                 if (trackFrame != null && clip!=null)
                 {

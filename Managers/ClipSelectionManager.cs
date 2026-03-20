@@ -8,17 +8,16 @@ namespace VESCO.Managers
 {
     public class ClipSelectionManager
     {
-
         private Clip? _selectedClip;
         private int _selectedTrackIndex = -1;
-        private TimelineController _timelineController;
-        private ClipDrawManager _clipDrawManager;
-        private TrackManager _trackManager;
-        private SnapManager _snapManager;
+        private readonly TimelineController _timelineController;
+        private readonly ClipDrawManager _clipDrawManager;
+        private readonly TrackManager _trackManager;
+        private readonly SnapManager _snapManager;
         private bool _isDragging = false;
         private Point _dragStartMouse;
         private long _dragStartFrame;
-        private Canvas _timelineCanvas;
+        private readonly Canvas _timelineCanvas;
         private readonly TextBox _xTextBox;
         private readonly Slider _xSlider;
         private readonly TextBox _yTextBox;
@@ -113,23 +112,7 @@ namespace VESCO.Managers
             long snappedFrame = _snapManager.GetSnappedFrame(_selectedClip, _selectedTrackIndex, targetFrame, enableSnapping);
 
             _selectedClip.TimelineStart = snappedFrame;
-
-            int newVideoTrackIndex = _trackManager.GetVideoTrackIndexFromY(position.Y);
-            int newAudioTrackIndex = _trackManager.GetAudioTrackIndexFromY(position.Y);
-            if (_selectedClip is VideoClip && newVideoTrackIndex >= 0 && newVideoTrackIndex < _timelineController.Timeline.VideoTracks.Count && newVideoTrackIndex != _selectedTrackIndex)
-            {
-                VideoClip videoClip = (VideoClip)_selectedClip;
-                _timelineController.Timeline.VideoTracks[_selectedTrackIndex].RemoveClip(videoClip);
-                _timelineController.Timeline.VideoTracks[newVideoTrackIndex].AddClip(videoClip);
-                _selectedTrackIndex = newVideoTrackIndex;
-            }
-            else if (_selectedClip is AudioClip && newAudioTrackIndex >= 0 && newAudioTrackIndex < _timelineController.Timeline.AudioTracks.Count && newAudioTrackIndex != _selectedTrackIndex)
-            {
-                AudioClip audioClip = (AudioClip)_selectedClip;
-                _timelineController.Timeline.AudioTracks[_selectedTrackIndex].RemoveClip(audioClip);
-                _timelineController.Timeline.AudioTracks[newAudioTrackIndex].AddClip(audioClip);
-                _selectedTrackIndex = newAudioTrackIndex;
-            }
+            TryMoveSelectedClipToTrack(position.Y);
 
             _clipDrawManager.UpdateClipPositions();
             _clipDrawManager.HighlightClip(_selectedClip);
@@ -152,54 +135,20 @@ namespace VESCO.Managers
             int audioTrackIndex = _trackManager.GetAudioTrackIndexFromY(position.Y);
             if (!(audioTrackIndex >= 0 && audioTrackIndex < _timelineController.Timeline.AudioTracks.Count) && !(videoTrackIndex >= 0 && videoTrackIndex <= _timelineController.Timeline.VideoTracks.Count))
             {
-                _selectedClip = null;
-                _selectedTrackIndex = -1;
-                _clipDrawManager.ClearHighlights();
+                ClearSelection();
                 return;
             }
 
             if (videoTrackIndex >= 0 && videoTrackIndex < _timelineController.Timeline.VideoTracks.Count)
             {
-                long totalFrames = _timelineController.GetTotalFramesWithBuffer();
                 VideoTrack track = _timelineController.Timeline.VideoTracks[videoTrackIndex];
 
                 foreach (VideoClip clip in track.Clips)
                 {
-                    double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
-                    double clipWidth = clip.Length * (_timelineController.Timeline.Fps / clip.Source.FPS) / totalFrames * _timelineCanvas.Width;
-
-                    if (position.X >= clipX && position.X <= clipX + clipWidth)
+                    if (IsPointOnVideoClip(position.X, clip))
                     {
                         _selectedClip = clip;
-
-                        _xTextBox.IsEnabled = true;
-                        _xTextBox.Text = clip.X.ToString();
-
-                        _xSlider.IsEnabled = true;
-                        _xSlider.Value = clip.X;
-                        _xSlider.Minimum = -clip.Source.Width;
-                        _xSlider.Maximum = clip.Source.Width;
-
-                        _yTextBox.IsEnabled = true;
-                        _yTextBox.Text = clip.Y.ToString();
-                        _ySlider.Minimum = -clip.Source.Height;
-                        _ySlider.Maximum = clip.Source.Height;
-
-                        _ySlider.IsEnabled = true;
-                        _ySlider.Value = clip.Y;
-
-                        _scaleTextBox.IsEnabled = true;
-                        _scaleTextBox.Text = clip.Scale.ToString("F2");
-
-                        _scaleSlider.IsEnabled = true;
-                        _scaleSlider.Value = clip.Scale;
-
-                        _opacityTextBox.IsEnabled = true;
-                        _opacityTextBox.Text = clip.Opacity.ToString("F2");
-
-                        _opacitySlider.IsEnabled = true;
-                        _opacitySlider.Value = clip.Opacity;
-
+                        SetVideoControlsForClip(clip);
                         _selectedTrackIndex = videoTrackIndex;
                         Debug.WriteLine($"Selected clip: {clip.Name} on track {videoTrackIndex}");
                         _clipDrawManager.HighlightClip(_selectedClip);
@@ -207,39 +156,17 @@ namespace VESCO.Managers
                     }
                 }
 
-                _selectedClip = null;
-                _xTextBox.IsEnabled = false;
-                _xSlider.IsEnabled = false;
-                _yTextBox.IsEnabled = false;
-                _ySlider.IsEnabled = false;
-                _scaleTextBox.IsEnabled = false;
-                _scaleSlider.IsEnabled = false;
-                _opacityTextBox.IsEnabled = false;
-                _opacitySlider.IsEnabled = false;
-                _selectedTrackIndex = -1;
-                _clipDrawManager.ClearHighlights();
+                ClearSelection();
             }
             else if (audioTrackIndex >= 0 && audioTrackIndex < _timelineController.Timeline.AudioTracks.Count)
             {
-                long totalFrames = _timelineController.GetTotalFramesWithBuffer();
                 AudioTrack track = _timelineController.Timeline.AudioTracks[audioTrackIndex];
 
                 foreach (AudioClip clip in track.Clips)
                 {
-                    double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
-                    long frameDuration = (long)(clip.Duration * _timelineController.Timeline.Fps);
-                    double clipWidth = (double)frameDuration / totalFrames * _timelineCanvas.Width;
-
-                    if (position.X >= clipX && position.X <= clipX + clipWidth)
+                    if (IsPointOnAudioClip(position.X, clip))
                     {
-                        _xTextBox.IsEnabled = false;
-                        _xSlider.IsEnabled = false;
-                        _yTextBox.IsEnabled = false;
-                        _ySlider.IsEnabled = false;
-                        _scaleTextBox.IsEnabled = false;
-                        _scaleSlider.IsEnabled = false;
-                        _opacityTextBox.IsEnabled = false;
-                        _opacitySlider.IsEnabled = false;
+                        SetVideoControlsEnabled(false);
                         _selectedClip = clip;
                         _selectedTrackIndex = audioTrackIndex;
                         Debug.WriteLine($"Selected clip: {clip.Name} on track {audioTrackIndex}");
@@ -248,9 +175,7 @@ namespace VESCO.Managers
                     }
                 }
 
-                _selectedClip = null;
-                _selectedTrackIndex = -1;
-                _clipDrawManager.ClearHighlights();
+                ClearSelection();
             }
 
 
@@ -263,17 +188,13 @@ namespace VESCO.Managers
 
             if (videoTrackIndex >= 0 && videoTrackIndex < _timelineController.Timeline.VideoTracks.Count)
             {
-                long totalFrames = _timelineController.GetTotalFramesWithBuffer();
                 VideoTrack track = _timelineController.Timeline.VideoTracks[videoTrackIndex];
 
                 Debug.WriteLine($"Attempting to cut at frame: {_timelineController.PositionToFrame(position.X)}");
 
                 foreach (VideoClip clip in track.Clips.ToList())
                 {
-                    double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
-                    double clipWidth = clip.Length * (_timelineController.Timeline.Fps / clip.Source.FPS) / totalFrames * _timelineCanvas.Width;
-
-                    if (position.X >= clipX && position.X <= clipX + clipWidth)
+                    if (IsPointOnVideoClip(position.X, clip))
                     {
                         long timelineCutFrame = _timelineController.PositionToFrame(position.X);
                         long cutFrame = (long)((timelineCutFrame - clip.TimelineStart) * (clip.Source.FPS / _timelineController.Timeline.Fps));
@@ -298,18 +219,13 @@ namespace VESCO.Managers
             }
             else if (audioTrackIndex >= 0 && audioTrackIndex < _timelineController.Timeline.AudioTracks.Count)
             {
-                long totalFrames = _timelineController.GetTotalFramesWithBuffer();
                 AudioTrack track = _timelineController.Timeline.AudioTracks[audioTrackIndex];
 
                 Debug.WriteLine($"Attempting to cut at frame: {_timelineController.PositionToFrame(position.X)}");
 
                 foreach (AudioClip clip in track.Clips.ToList())
                 {
-                    double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
-                    long frameDuration = (long)(clip.Duration * _timelineController.Timeline.Fps);
-                    double clipWidth = (double)frameDuration / totalFrames * _timelineCanvas.Width;
-
-                    if (position.X >= clipX && position.X <= clipX + clipWidth)
+                    if (IsPointOnAudioClip(position.X, clip))
                     {
                         long timelineCutFrame = _timelineController.PositionToFrame(position.X);
                         double timelineCutTime = timelineCutFrame / _timelineController.Timeline.Fps;
@@ -366,6 +282,104 @@ namespace VESCO.Managers
             }
         }
 
+        private void TryMoveSelectedClipToTrack(double yPosition)
+        {
+            if (_selectedClip is VideoClip videoClip)
+            {
+                int newTrackIndex = _trackManager.GetVideoTrackIndexFromY(yPosition);
+                if (newTrackIndex >= 0 &&
+                    newTrackIndex < _timelineController.Timeline.VideoTracks.Count &&
+                    newTrackIndex != _selectedTrackIndex)
+                {
+                    _timelineController.Timeline.VideoTracks[_selectedTrackIndex].RemoveClip(videoClip);
+                    _timelineController.Timeline.VideoTracks[newTrackIndex].AddClip(videoClip);
+                    _selectedTrackIndex = newTrackIndex;
+                }
+
+                return;
+            }
+
+            if (_selectedClip is AudioClip audioClip)
+            {
+                int newTrackIndex = _trackManager.GetAudioTrackIndexFromY(yPosition);
+                if (newTrackIndex >= 0 &&
+                    newTrackIndex < _timelineController.Timeline.AudioTracks.Count &&
+                    newTrackIndex != _selectedTrackIndex)
+                {
+                    _timelineController.Timeline.AudioTracks[_selectedTrackIndex].RemoveClip(audioClip);
+                    _timelineController.Timeline.AudioTracks[newTrackIndex].AddClip(audioClip);
+                    _selectedTrackIndex = newTrackIndex;
+                }
+            }
+        }
+
+        private bool IsPointOnVideoClip(double positionX, VideoClip clip)
+        {
+            double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
+            double clipWidth = GetVideoClipWidth(clip);
+            return positionX >= clipX && positionX <= clipX + clipWidth;
+        }
+
+        private bool IsPointOnAudioClip(double positionX, AudioClip clip)
+        {
+            double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
+            double clipWidth = GetAudioClipWidth(clip);
+            return positionX >= clipX && positionX <= clipX + clipWidth;
+        }
+
+        private double GetVideoClipWidth(VideoClip clip)
+        {
+            long totalFrames = _timelineController.GetTotalFramesWithBuffer();
+            return clip.Length * (_timelineController.Timeline.Fps / clip.Source.FPS) / totalFrames * _timelineCanvas.Width;
+        }
+
+        private double GetAudioClipWidth(AudioClip clip)
+        {
+            long totalFrames = _timelineController.GetTotalFramesWithBuffer();
+            long frameDuration = (long)(clip.Duration * _timelineController.Timeline.Fps);
+            return (double)frameDuration / totalFrames * _timelineCanvas.Width;
+        }
+
+        private void SetVideoControlsForClip(VideoClip clip)
+        {
+            SetVideoControlsEnabled(true);
+
+            _xTextBox.Text = clip.X.ToString();
+            _xSlider.Minimum = -clip.Source.Width;
+            _xSlider.Maximum = clip.Source.Width;
+            _xSlider.Value = clip.X;
+
+            _yTextBox.Text = clip.Y.ToString();
+            _ySlider.Minimum = -clip.Source.Height;
+            _ySlider.Maximum = clip.Source.Height;
+            _ySlider.Value = clip.Y;
+
+            _scaleTextBox.Text = clip.Scale.ToString("F2");
+            _scaleSlider.Value = clip.Scale;
+
+            _opacityTextBox.Text = clip.Opacity.ToString("F2");
+            _opacitySlider.Value = clip.Opacity;
+        }
+
+        private void SetVideoControlsEnabled(bool enabled)
+        {
+            _xTextBox.IsEnabled = enabled;
+            _xSlider.IsEnabled = enabled;
+            _yTextBox.IsEnabled = enabled;
+            _ySlider.IsEnabled = enabled;
+            _scaleTextBox.IsEnabled = enabled;
+            _scaleSlider.IsEnabled = enabled;
+            _opacityTextBox.IsEnabled = enabled;
+            _opacitySlider.IsEnabled = enabled;
+        }
+
+        private void ClearSelection()
+        {
+            _selectedClip = null;
+            _selectedTrackIndex = -1;
+            SetVideoControlsEnabled(false);
+            _clipDrawManager.ClearHighlights();
+        }
 
     }
 }

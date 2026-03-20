@@ -7,10 +7,23 @@ namespace VESCO.Managers
 {
     public class ClipDrawManager
     {
-
         private readonly TimelineController _timelineController;
         private readonly Canvas _timelineCanvas;
-        private int _trackHeight = 40;
+        private readonly int _trackHeight = 40;
+        private static readonly Color[] VideoTrackColors =
+        [
+            Color.FromRgb(70, 130, 180),
+            Color.FromRgb(180, 130, 70),
+            Color.FromRgb(130, 180, 70),
+            Color.FromRgb(180, 70, 130)
+        ];
+        private static readonly Color[] AudioTrackColors =
+        [
+            Color.FromRgb(100, 100, 100),
+            Color.FromRgb(150, 150, 150),
+            Color.FromRgb(200, 200, 200),
+            Color.FromRgb(50, 50, 50)
+        ];
 
         public ClipDrawManager(TimelineController timelineController, Canvas timelineCanvas)
         {
@@ -42,33 +55,9 @@ namespace VESCO.Managers
 
         private void DrawVideoClip(VideoClip clip, int trackIndex)
         {
-            long totalFrames = _timelineController.GetTotalFramesWithBuffer();
             double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
-            double clipWidth = clip.Length * (_timelineController.Timeline.Fps / clip.Source.FPS) / totalFrames * _timelineCanvas.Width;
-
-            Color[] trackColors = new[]
-            {
-                Color.FromRgb(70, 130, 180),
-                Color.FromRgb(180, 130, 70),
-                Color.FromRgb(130, 180, 70),
-                Color.FromRgb(180, 70, 130)
-            };
-
-            Border rect = new Border
-            {
-                Width = Math.Max(4, clipWidth),
-                Height = _trackHeight,
-                Background = new SolidColorBrush(trackColors[trackIndex % trackColors.Length]),
-                BorderBrush = Brushes.Black,
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(3),
-                Child = new TextBlock
-                {
-                    Text = clip.Name,
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(4, 2, 0, 0)
-                }
-            };
+            double clipWidth = GetVideoClipWidth(clip);
+            Border rect = CreateClipBorder(clip.Name, VideoTrackColors[trackIndex % VideoTrackColors.Length], clipWidth);
 
             Canvas.SetLeft(rect, clipX);
             Canvas.SetTop(rect, GetVideoTrackY(trackIndex));
@@ -79,32 +68,9 @@ namespace VESCO.Managers
 
         private void DrawAudioClip(AudioClip clip, int trackIndex)
         {
-            long totalFrames = _timelineController.GetTotalFramesWithBuffer();
             double clipX = _timelineController.FrameToPosition(clip.TimelineStart);
-            long frameDuration = (long)(clip.Duration * _timelineController.Timeline.Fps);
-            double clipWidth = (double)frameDuration / totalFrames * _timelineCanvas.Width;
-            Color[] trackColors = new[]
-            {
-                Color.FromRgb(100, 100, 100),
-                Color.FromRgb(150, 150, 150),
-                Color.FromRgb(200, 200, 200),
-                Color.FromRgb(50, 50, 50)
-            };
-            Border rect = new Border
-            {
-                Width = Math.Max(4, clipWidth),
-                Height = _trackHeight,
-                Background = new SolidColorBrush(trackColors[trackIndex % trackColors.Length]),
-                BorderBrush = Brushes.Black,
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(3),
-                Child = new TextBlock
-                {
-                    Text = clip.Name,
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(4, 2, 0, 0)
-                }
-            };
+            double clipWidth = GetAudioClipWidth(clip);
+            Border rect = CreateClipBorder(clip.Name, AudioTrackColors[trackIndex % AudioTrackColors.Length], clipWidth);
             clip.Rect = rect;
             Canvas.SetLeft(rect, clipX);
             Canvas.SetTop(rect, GetAudioTrackY(trackIndex));
@@ -149,6 +115,38 @@ namespace VESCO.Managers
             {
                 border.BorderBrush = Brushes.Black;
             }
+        }
+
+        private Border CreateClipBorder(string clipName, Color color, double clipWidth)
+        {
+            return new Border
+            {
+                Width = Math.Max(4, clipWidth),
+                Height = _trackHeight,
+                Background = new SolidColorBrush(color),
+                BorderBrush = Brushes.Black,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Child = new TextBlock
+                {
+                    Text = clipName,
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(4, 2, 0, 0)
+                }
+            };
+        }
+
+        private double GetVideoClipWidth(VideoClip clip)
+        {
+            long totalFrames = _timelineController.GetTotalFramesWithBuffer();
+            return clip.Length * (_timelineController.Timeline.Fps / clip.Source.FPS) / totalFrames * _timelineCanvas.Width;
+        }
+
+        private double GetAudioClipWidth(AudioClip clip)
+        {
+            long totalFrames = _timelineController.GetTotalFramesWithBuffer();
+            long frameDuration = (long)(clip.Duration * _timelineController.Timeline.Fps);
+            return (double)frameDuration / totalFrames * _timelineCanvas.Width;
         }
     }
 }
