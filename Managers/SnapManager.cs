@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using VESCO.Timeline;
 
 namespace VESCO.Managers
@@ -6,14 +7,16 @@ namespace VESCO.Managers
     public class SnapManager
     {
         private readonly TimelineController _timelineController;
+        private readonly ILogger<SnapManager> _logger;
         private const long SnapThresholdFrames = 30;
         
         private Clip? _snapTargetClip = null;
         private long _snapTargetFrame = -1;
 
-        public SnapManager(TimelineController timelineController)
+        public SnapManager(TimelineController timelineController, ILogger<SnapManager> logger)
         {
             _timelineController = timelineController;
+            _logger = logger;
         }
 
         public long GetSnappedFrame(Clip draggedClip, int draggedTrackIndex, long targetFrame, bool enableSnapping)
@@ -81,7 +84,7 @@ namespace VESCO.Managers
             {
                 _snapTargetClip = bestSnapTarget;
                 _snapTargetFrame = snappedFrame;
-                Debug.WriteLine($"Snap detected: {minDistance} frames away, snapped to {snappedFrame}");
+                _logger.LogDebug("Snap detected {Distance} frames away, snapped to {SnappedFrame}", minDistance, snappedFrame);
                 return Math.Max(0, snappedFrame);
             }
 

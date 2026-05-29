@@ -28,26 +28,22 @@ namespace VESCO.Timeline
         {
             if (IsMuted) return null;
 
-            // Find clips at this frame
             foreach (var clip in Clips)
             {
                 long clipEndFrame = clip.TimelineStart + (long)(clip.Duration * fps);
 
                 if (frame >= clip.TimelineStart && frame < clipEndFrame)
                 {
-                    // Get audio samples for this frame
                     double frameTime = frame / fps;
                     double sourceTime = frameTime - (clip.TimelineStart / fps) + clip.SourceStart;
 
                     using var reader = new AudioFileReader(clip.Source.FilePath);
                     reader.CurrentTime = TimeSpan.FromSeconds(sourceTime);
 
-                    // Read samples for one frame duration
                     int samplesPerFrame = (int)(sampleRate / fps * channels);
                     float[] buffer = new float[samplesPerFrame];
                     reader.Read(buffer, 0, samplesPerFrame);
 
-                    // Apply track and clip volume
                     for (int i = 0; i < buffer.Length; i++)
                     {
                         buffer[i] *= (float)(Volume * clip.Volume);

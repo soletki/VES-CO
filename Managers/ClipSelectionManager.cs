@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -26,6 +27,7 @@ namespace VESCO.Managers
         private readonly Slider _scaleSlider;
         private readonly TextBox _opacityTextBox;
         private readonly Slider _opacitySlider;
+        private readonly ILogger<ClipSelectionManager> _logger;
 
         public bool IsDragging => _isDragging;
 
@@ -42,7 +44,8 @@ namespace VESCO.Managers
                 TextBox scaleTextBox,
                 Slider scaleSlider,
                 TextBox opacityTextBox,
-                Slider opacitySlider
+                Slider opacitySlider,
+                ILoggerFactory loggerFactory
             )
         {
             _timelineController = timelineController;
@@ -57,7 +60,8 @@ namespace VESCO.Managers
             _scaleSlider = scaleSlider;
             _opacityTextBox = opacityTextBox;
             _opacitySlider = opacitySlider;
-            _snapManager = new SnapManager(timelineController);
+            _logger = loggerFactory.CreateLogger<ClipSelectionManager>();
+            _snapManager = new SnapManager(timelineController, loggerFactory.CreateLogger<SnapManager>());
         }
 
         public void DeleteSelectedClip()
@@ -125,7 +129,7 @@ namespace VESCO.Managers
                 _isDragging = false;
                 _timelineCanvas.ReleaseMouseCapture();
                 _snapManager.ResetSnapState();
-                Debug.WriteLine($"Clip dropped: {_selectedClip?.Name}");
+                _logger.LogDebug("Clip dropped: {ClipName}", _selectedClip?.Name);
             }
         }
 
@@ -150,7 +154,7 @@ namespace VESCO.Managers
                         _selectedClip = clip;
                         SetVideoControlsForClip(clip);
                         _selectedTrackIndex = videoTrackIndex;
-                        Debug.WriteLine($"Selected clip: {clip.Name} on track {videoTrackIndex}");
+                        _logger.LogDebug("Selected clip {ClipName} on video track {TrackIndex}", clip.Name, videoTrackIndex);
                         _clipDrawManager.HighlightClip(_selectedClip);
                         return;
                     }
@@ -169,7 +173,7 @@ namespace VESCO.Managers
                         SetVideoControlsEnabled(false);
                         _selectedClip = clip;
                         _selectedTrackIndex = audioTrackIndex;
-                        Debug.WriteLine($"Selected clip: {clip.Name} on track {audioTrackIndex}");
+                        _logger.LogDebug("Selected clip {ClipName} on audio track {TrackIndex}", clip.Name, audioTrackIndex);
                         _clipDrawManager.HighlightClip(_selectedClip);
                         return;
                     }
@@ -189,8 +193,7 @@ namespace VESCO.Managers
             if (videoTrackIndex >= 0 && videoTrackIndex < _timelineController.Timeline.VideoTracks.Count)
             {
                 VideoTrack track = _timelineController.Timeline.VideoTracks[videoTrackIndex];
-
-                Debug.WriteLine($"Attempting to cut at frame: {_timelineController.PositionToFrame(position.X)}");
+                _logger.LogDebug("Attempting to cut video clip at timeline frame {TimelineFrame}", _timelineController.PositionToFrame(position.X));
 
                 foreach (VideoClip clip in track.Clips.ToList())
                 {
@@ -202,7 +205,7 @@ namespace VESCO.Managers
 
                         if (firstPart == null || secondPart == null)
                         {
-                            Debug.WriteLine($"Cut failed: Invalid split at frame {cutFrame} for clip {clip.Name}");
+                            _logger.LogWarning("Video cut failed for clip {ClipName} at source frame {CutFrame}", clip.Name, cutFrame);
                             return;
                         }
 
@@ -212,7 +215,7 @@ namespace VESCO.Managers
                         track.AddClip(secondPart);
                         _clipDrawManager.UpdateClipPositions();
                         _clipDrawManager.HighlightClip(_selectedClip);
-                        Debug.WriteLine($"Cut clip: {clip.Name} at frame {cutFrame}");
+                        _logger.LogDebug("Cut video clip {ClipName} at source frame {CutFrame}", clip.Name, cutFrame);
                         return;
                     }
                 }
@@ -220,8 +223,7 @@ namespace VESCO.Managers
             else if (audioTrackIndex >= 0 && audioTrackIndex < _timelineController.Timeline.AudioTracks.Count)
             {
                 AudioTrack track = _timelineController.Timeline.AudioTracks[audioTrackIndex];
-
-                Debug.WriteLine($"Attempting to cut at frame: {_timelineController.PositionToFrame(position.X)}");
+                _logger.LogDebug("Attempting to cut audio clip at timeline frame {TimelineFrame}", _timelineController.PositionToFrame(position.X));
 
                 foreach (AudioClip clip in track.Clips.ToList())
                 {
@@ -230,12 +232,12 @@ namespace VESCO.Managers
                         long timelineCutFrame = _timelineController.PositionToFrame(position.X);
                         double timelineCutTime = timelineCutFrame / _timelineController.Timeline.Fps;
                         double clipCutTime = timelineCutTime - clip.TimelineStart / _timelineController.Timeline.Fps;
-                        Debug.WriteLine($"Cutting Audio Clip at time: {clipCutTime}");
+                        _logger.LogDebug("Cutting audio clip {ClipName} at time {CutTimeSeconds}", clip.Name, clipCutTime);
                         var (firstPart, secondPart) = clip.SplitAtTime(clipCutTime, _timelineController.Timeline);
 
                         if (firstPart == null || secondPart == null)
                         {
-                            Debug.WriteLine($"Cut failed: Invalid split at time {clipCutTime} for clip {clip.Name}");
+                            _logger.LogWarning("Audio cut failed for clip {ClipName} at time {CutTimeSeconds}", clip.Name, clipCutTime);
                             return;
                         }
 
@@ -244,7 +246,7 @@ namespace VESCO.Managers
                         track.AddClip(secondPart);
                         _clipDrawManager.UpdateClipPositions();
                         _clipDrawManager.HighlightClip(_selectedClip);
-                        Debug.WriteLine($"Cut Audio Clip: {clip.Name} at time {timelineCutTime}");
+                        _logger.LogDebug("Cut audio clip {ClipName} at timeline time {TimelineTimeSeconds}", clip.Name, timelineCutTime);
                         return;
                     }
                 }

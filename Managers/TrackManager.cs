@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Microsoft.Extensions.Logging;
 using VESCO.Timeline;
 
 namespace VESCO.Managers
@@ -11,6 +12,8 @@ namespace VESCO.Managers
         private readonly Canvas _timelineCanvas;
         private readonly StackPanel _trackLabelsPanel;
         private readonly ClipDrawManager _clipDrawManager;
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger<TrackManager> _logger;
 
         private int _trackHeight = 40;
 
@@ -18,12 +21,15 @@ namespace VESCO.Managers
             TimelineController timelineController,
             Canvas timelineCanvas,
             StackPanel trackLabelsPanel,
-            ClipDrawManager clipDrawManager)
+            ClipDrawManager clipDrawManager,
+            ILoggerFactory loggerFactory)
         {
             _timelineController = timelineController;
             _timelineCanvas = timelineCanvas;
             _trackLabelsPanel = trackLabelsPanel;
             _clipDrawManager = clipDrawManager;
+            _loggerFactory = loggerFactory;
+            _logger = loggerFactory.CreateLogger<TrackManager>();
             _clipDrawManager.SetTrackHeight(_trackHeight);
         }
 
@@ -39,6 +45,7 @@ namespace VESCO.Managers
         public void IncreaseTrackHeight()
         {
             _trackHeight += 10;
+            _logger.LogDebug("Increased track height to {TrackHeight}", _trackHeight);
             _clipDrawManager.SetTrackHeight(_trackHeight);
             UpdateTimelineHeight();
             _clipDrawManager.UpdateClipPositions();
@@ -48,6 +55,7 @@ namespace VESCO.Managers
         public void DecreaseTrackHeight()
         {
             _trackHeight = Math.Max(10, _trackHeight - 10);
+            _logger.LogDebug("Decreased track height to {TrackHeight}", _trackHeight);
             _clipDrawManager.SetTrackHeight(_trackHeight);
             UpdateTimelineHeight();
             _clipDrawManager.UpdateClipPositions();
@@ -98,6 +106,7 @@ namespace VESCO.Managers
 
             VideoTrack track = new VideoTrack(trackName, _timelineController.Timeline.Fps);
             _timelineController.Timeline.VideoTracks.Insert(0, track);
+            _logger.LogInformation("Added video track {TrackName}", trackName);
 
             RefreshTimelineLayout();
         }
@@ -109,6 +118,7 @@ namespace VESCO.Managers
 
             AudioTrack track = new AudioTrack(trackName);
             _timelineController.Timeline.AudioTracks.Add(track);
+            _logger.LogInformation("Added audio track {TrackName}", trackName);
 
             RefreshTimelineLayout();
         }
@@ -117,7 +127,10 @@ namespace VESCO.Managers
         {
             int trackIndex = GetVideoTrackIndexFromY(yPosition);
             if (trackIndex < 0 || trackIndex >= _timelineController.Timeline.VideoTracks.Count)
+            {
+                _logger.LogWarning("Ignored video clip drop for {FilePath} because track index {TrackIndex} is invalid", source.FilePath, trackIndex);
                 return;
+            }
 
             long startFrame = _timelineController.PositionToFrame(xPosition);
 
@@ -126,9 +139,11 @@ namespace VESCO.Managers
                 sourceStart: 0,
                 timelineStart: startFrame,
                 source: source,
-                timelineFps: _timelineController.Timeline.Fps);
+                timelineFps: _timelineController.Timeline.Fps,
+                logger: _loggerFactory.CreateLogger<VideoClip>());
 
             _timelineController.Timeline.VideoTracks[trackIndex].AddClip(clip);
+            _logger.LogInformation("Added video clip {ClipName} to track {TrackIndex} at frame {StartFrame}", clip.Name, trackIndex, startFrame);
             _clipDrawManager.UpdateClipPositions();
         }
 
@@ -136,7 +151,10 @@ namespace VESCO.Managers
         {
             int trackIndex = GetAudioTrackIndexFromY(yPosition);
             if (trackIndex < 0 || trackIndex >= _timelineController.Timeline.AudioTracks.Count)
+            {
+                _logger.LogWarning("Ignored audio clip drop for {FilePath} because track index {TrackIndex} is invalid", source.FilePath, trackIndex);
                 return;
+            }
             long startFrame = _timelineController.PositionToFrame(xPosition);
             AudioClip clip = new AudioClip(
                 source.FilePath,
@@ -144,6 +162,7 @@ namespace VESCO.Managers
                 timelineStart: startFrame,
                 source: source);
             _timelineController.Timeline.AudioTracks[trackIndex].AddClip(clip);
+            _logger.LogInformation("Added audio clip {ClipName} to track {TrackIndex} at frame {StartFrame}", clip.Name, trackIndex, startFrame);
             _clipDrawManager.UpdateClipPositions();
         }
 
@@ -159,6 +178,7 @@ namespace VESCO.Managers
 
         public void ClearTracks()
         {
+            _logger.LogInformation("Clearing all timeline tracks");
             for(int i=0;i< _timelineController.Timeline.VideoTracks.Count; i++) { 
                 for(int j=0;j< _timelineController.Timeline.VideoTracks[i].Clips.Count; j++)
                 {

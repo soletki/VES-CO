@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -19,13 +20,21 @@ namespace VESCO
         private readonly ClipDrawManager _clipDrawManager;
         private readonly TrackManager _trackManager;
         private readonly ToolManager _toolManager;
+        private readonly ILogger<MainWindow> _logger;
 
         public ObservableCollection<SourceFile> MediaBin { get; } = new();
 
         public MainWindow()
+            : this(((App?)Application.Current)?.LoggerFactory ?? NullLoggerFactory.Instance)
+        {
+        }
+
+        public MainWindow(ILoggerFactory loggerFactory)
         {
             InitializeComponent();
             DataContext = this;
+            _logger = loggerFactory.CreateLogger<MainWindow>();
+            _logger.LogInformation("Initializing main window");
 
             _timelineController = new TimelineController(60, TimelineArea);
             _playheadController = new PlayheadController(
@@ -36,14 +45,16 @@ namespace VESCO
                 previewImage,
                 TimecodeDisplay,
                 FrameCounter,
-                TimelineScrollViewer);
+                TimelineScrollViewer,
+                loggerFactory.CreateLogger<PlayheadController>());
             _clipDrawManager = new ClipDrawManager(_timelineController, TimelineArea); 
-            _trackManager = new TrackManager(_timelineController, TimelineArea, TrackLabelsPanel, _clipDrawManager);
-            _clipSelectionManager = new ClipSelectionManager(_timelineController, _clipDrawManager, _trackManager, TimelineArea, XTextBox, XSlider, YTextBox, YSlider, ScaleTextBox, ScaleSlider, OpacityTextBox, OpacitySlider);
+            _trackManager = new TrackManager(_timelineController, TimelineArea, TrackLabelsPanel, _clipDrawManager, loggerFactory);
+            _clipSelectionManager = new ClipSelectionManager(_timelineController, _clipDrawManager, _trackManager, TimelineArea, XTextBox, XSlider, YTextBox, YSlider, ScaleTextBox, ScaleSlider, OpacityTextBox, OpacitySlider, loggerFactory);
             _toolManager = new ToolManager(SelectTool, CutTool);
             
             _trackManager.InitializeTracks();
             _playheadController.UpdateDisplays();
+            _logger.LogInformation("Main window initialized");
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -132,11 +143,13 @@ namespace VESCO
 
             if (dialog.ShowDialog() == true)
             {
+                _logger.LogInformation("Opening media file {FilePath}", dialog.FileName);
                 MediaBin.Add(new VideoSource(dialog.FileName));
                 IMediaInfo mediaInfo = await Xabe.FFmpeg.FFmpeg.GetMediaInfo(dialog.FileName);
                 var audioStream = mediaInfo.AudioStreams.ToList();
                 if (audioStream.Count > 0)
                 {
+                    _logger.LogInformation("Extracting {AudioStreamCount} audio stream(s) from {FilePath}", audioStream.Count, dialog.FileName);
                     string tempDir = Path.Combine(Path.GetTempPath(), "vesco_audio_" + Guid.NewGuid());
                     Directory.CreateDirectory(tempDir);
                     for (int i = 0; i < audioStream.Count; i++)
@@ -153,6 +166,8 @@ namespace VESCO
                         MediaBin.Add(new AudioSource(tempDir + $"_{i}.wav"));
                     }
                 }
+
+                _logger.LogInformation("Imported media file {FilePath}", dialog.FileName);
             }
         }
 
@@ -185,7 +200,7 @@ namespace VESCO
         private void TimelineClick(object sender, MouseButtonEventArgs e)
         {
             var position = e.GetPosition(TimelineArea);
-            Debug.WriteLine($"Timeline clicked at: {position}");
+            _logger.LogDebug("Timeline clicked at {Position}", position);
 
             if (_toolManager.ActiveTool == ToolType.Select)
             {
@@ -340,6 +355,7 @@ namespace VESCO
 
         private void ClearTimeline(object sender, RoutedEventArgs e)
         {
+            _logger.LogInformation("Clearing timeline");
             _trackManager.ClearTracks();
         }
 

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace VESCO.Managers
 {
@@ -15,6 +16,7 @@ namespace VESCO.Managers
         private readonly TextBlock _frameCounter;
         private readonly ScrollViewer _timelineScrollViewer;
         private readonly Dispatcher _dispatcher;
+        private readonly ILogger<PlayheadController> _logger;
         private long _currentFrame;
         private bool _isDragging;
         private bool _isPlaying;
@@ -31,7 +33,8 @@ namespace VESCO.Managers
 
         public PlayheadController(TimelineController timelineController, Canvas playheadCanvas,
             Rectangle playhead, Polygon playheadTop, Image previewImage,
-            TextBlock timecodeDisplay, TextBlock frameCounter, ScrollViewer timelineScrollViewer)
+            TextBlock timecodeDisplay, TextBlock frameCounter, ScrollViewer timelineScrollViewer,
+            ILogger<PlayheadController> logger)
         {
             _timelineController = timelineController;
             _timelineScrollViewer = timelineScrollViewer;
@@ -40,6 +43,7 @@ namespace VESCO.Managers
             _timecodeDisplay = timecodeDisplay;
             _frameCounter = frameCounter;
             _dispatcher = Dispatcher.CurrentDispatcher;
+            _logger = logger;
 
             _playbackStopwatch = new Stopwatch();
         }
@@ -88,7 +92,7 @@ namespace VESCO.Managers
             }
             catch (OperationCanceledException)
             {
-                Debug.WriteLine("Playback loop cancelled");
+                _logger.LogDebug("Playback loop cancelled");
             }
         }
 
@@ -141,8 +145,7 @@ namespace VESCO.Managers
                 
                 _playbackCts = new CancellationTokenSource();
                 _ = Task.Run(() => RunPlaybackLoop(_playbackCts.Token));
-                
-                Debug.WriteLine("Playback started");
+                _logger.LogDebug("Playback started");
             }
         }
 
@@ -155,7 +158,7 @@ namespace VESCO.Managers
                 _isPlaying = false;
                 _playbackStopwatch.Stop();
                 _playbackCts?.Cancel();
-                Debug.WriteLine("Playback paused");
+                _logger.LogDebug("Playback paused");
             }
         }
 
@@ -175,8 +178,7 @@ namespace VESCO.Managers
                 UpdatePreview();
                 UpdateDisplays();
             });
-            
-            Debug.WriteLine("Playback stopped");
+            _logger.LogDebug("Playback stopped");
         }
 
         public void StepForward()

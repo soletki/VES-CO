@@ -1,7 +1,7 @@
 ﻿using OpenCvSharp;
 using OpenCvSharp.WpfExtensions;
 using System.Collections.Concurrent;
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using System.Windows.Media.Imaging;
 
 namespace VESCO.Timeline
@@ -20,6 +20,7 @@ namespace VESCO.Timeline
         private CancellationTokenSource _cachingCancellationTokenSource;
         private Task _cachingTask;
         private readonly object _cacheLockObj = new();
+        private readonly ILogger<VideoClip> _logger;
         private long _currentPlayheadFrame = -1;
         private const int CacheSize = 400;
         private const int EstimatedFrameMemoryBytes = 3_000_000; // ~3MB per frame
@@ -33,7 +34,7 @@ namespace VESCO.Timeline
         public long SourceStart { get; }
         public long Length { get; }
 
-        public VideoClip(string filePath, long sourceStart, long timelineStart, VideoSource source, double timelineFps, long length = -1, int x = 0, int y = 0, double scale = 1.0, double opacity = 1.0)
+        public VideoClip(string filePath, long sourceStart, long timelineStart, VideoSource source, double timelineFps, long length = -1, int x = 0, int y = 0, double scale = 1.0, double opacity = 1.0, ILogger<VideoClip>? logger = null)
             : base(filePath, timelineStart)
         {
             _capture = new VideoCapture(source.FilePath);
@@ -46,6 +47,7 @@ namespace VESCO.Timeline
             Scale = scale;
             Opacity = opacity;
             Length = length != -1 ? length : Source.FrameCount - SourceStart;
+            _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<VideoClip>.Instance;
 
             _frameCache = new FrameCache<long, BitmapSource>(EstimatedFrameMemoryBytes * CacheSize);
             
@@ -59,8 +61,8 @@ namespace VESCO.Timeline
             lock (_cacheLockObj)
             {
                 _currentPlayheadFrame = localFrame;
-                Debug.WriteLine(_currentPlayheadFrame);
             }
+            _logger.LogTrace("Requested video frame {LocalFrame}", localFrame);
 
             if (_frameCache.TryGet(localFrame, out var cachedFrame))
             {
@@ -136,7 +138,7 @@ namespace VESCO.Timeline
                 }
                 catch
                 {
-                    // Silently handle any errors in background caching
+                    _logger.LogDebug("Video frame caching loop hit an internal error for {FilePath}", FilePath);
                 }
             }
         }
@@ -163,9 +165,9 @@ namespace VESCO.Timeline
                     _cachePriorityQueue.Append(localFrame);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Silently handle caching errors
+                _logger.LogDebug(ex, "Failed to cache frame {LocalFrame} for {FilePath}", localFrame, FilePath);
             }
         }
 
@@ -184,7 +186,8 @@ namespace VESCO.Timeline
                 X,
                 Y,
                 Scale,
-                Opacity
+                Opacity,
+                _logger
             );
 
             var secondClip = new VideoClip(
@@ -197,7 +200,8 @@ namespace VESCO.Timeline
                 X,
                 Y,
                 Scale,
-                Opacity
+                Opacity,
+                _logger
             );
 
             return (firstClip, secondClip);

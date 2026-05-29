@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "VESCO": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "VESCO_LOG_LEVEL": "Trace"
+      }
+    }
+  }
+}
