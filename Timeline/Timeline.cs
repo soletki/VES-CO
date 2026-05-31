@@ -115,10 +115,10 @@ namespace VESCO.Timeline
                             frameToLayer = resized;
                         }
 
-                        //int dstX = (int)(frame.x * PreviewScale);
-                        //int dstY = (int)(frame.y * PreviewScale);
-                        int dstX = frame.x;
-                        int dstY = frame.y;
+                        int dstX = (int)(frame.x * PreviewScale);
+                        int dstY = (int)(frame.y * PreviewScale);
+                        //int dstX = frame.x;
+                        //int dstY = frame.y;
 
                         int srcX = 0;
                         int srcY = 0;

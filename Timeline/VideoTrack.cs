@@ -3,15 +3,13 @@ using System.Windows.Media.Imaging;
 
 namespace VESCO.Timeline
 {
-    public class VideoTrack
+    public class VideoTrack : Track
     {
-        public string Name { get; set; }
         public double Fps { get; }
         public List<VideoClip> Clips { get; set; } = new();
 
-        public VideoTrack(string name, double fps)
+        public VideoTrack(string name, double fps) : base(name)
         {
-            Name = name;
             Fps = fps;
         }
 

@@ -2,16 +2,14 @@
 
 namespace VESCO.Timeline
 {
-    public class AudioTrack
+    public class AudioTrack : Track
     {
-        public string Name { get; set; }
         public List<AudioClip> Clips { get; set; } = new();
         public double Volume { get; set; } = 1.0;
         public bool IsMuted { get; set; } = false;
 
-        public AudioTrack(string name)
+        public AudioTrack(string name) : base(name)
         {
-            Name = name;
         }
 
         public void AddClip(AudioClip clip)
